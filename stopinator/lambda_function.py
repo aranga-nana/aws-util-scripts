@@ -97,7 +97,7 @@ def can_stop(ch,cm,time_b,time_e):
 
   if ch > time_e[0]:
      can = True
-  if time_e[0] == ch and cm > time_e[1]:
+  if time_e[0] == ch and cm >= time_e[1]:
      can = True
 
   return can   
