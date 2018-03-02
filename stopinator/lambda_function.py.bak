@@ -1,0 +1,121 @@
+import pytz
+import boto3
+import datetime
+import time
+import calendar
+
+
+TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+
+
+aus = pytz.timezone ("Australia/NSW")
+datetime_with_tz = datetime.datetime.now(aus) # No daylight saving time
+ch= datetime_with_tz.hour
+cm= datetime_with_tz.minute
+
+
+
+d={"1":"name"}
+
+def get_tag_val(arg,tags):
+    val = ""
+    for x in tags:
+       if x['Key'] == arg:
+          val = x['Value']
+    return val
+ 
+def start_end_time(arg,tags):
+   v =""
+   
+   
+   r=[111,211]
+   
+   for x in tags:
+	if x['Key'] == arg:
+	   v = x['Value']
+           #print v
+           timepart= v.split(':')
+           r[0]= int(timepart[0])
+           r[1]=int(timepart[1])
+
+   return r
+
+def stopInstance(ec2,iid):
+    #print('stopiing instance ',iid)
+    print ec2.stop_instances(InstanceIds=[iid])
+
+def startInstances(ec2,iid):
+    print ec2.start_instances(InstanceIds=[iid])
+
+
+def initaliseall():
+
+    ch= datetime_with_tz.hour
+    cm= datetime_with_tz.minute
+    print "loading autoscale groups"
+    client = boto3.client('autoscaling',region_name='ap-southeast-2')
+    response = client.describe_auto_scaling_groups()
+    print "AWS Current Time (HH:MM)",ch,";",cm
+    #print response
+    #nextToken = response['NextToken']
+    asgs = response['AutoScalingGroups']
+    for asg in asgs:
+        #print asg['AutoScalingGroupName'],'\n'
+        for instance in asg['Instances']:
+            iid= instance['InstanceId']
+            d[iid] = asg['AutoScalingGroupName']
+
+
+def lambda_handler(event, context):
+
+    print("event content:",event)
+    initaliseall()
+
+
+    ec2 = boto3.client('ec2',region_name='ap-southeast-2')
+    filters = [{'Name': 'tag:Name', 'Values': ['lin*'] },{'Name':'tag:stopinator','Values':['true']}]
+    reservations=ec2.describe_instances(Filters=filters)
+    for r in reservations['Reservations']:
+        #print(r,"\n\n")
+        #print(r,"=======================================")
+        for i in r['Instances']:
+            iid=i['InstanceId']
+            date= i.get('LaunchTime')
+            tags =i['Tags']
+            print "analysing instance :",iid," -",get_tag_val("Name",tags)
+
+            ## stop
+            timep = start_end_time('time:stop',tags)
+            
+            print "time:stop (HH:mm)",timep[0],";",timep[1]
+            stated = i['State']
+            stateId = stated.get('Code')
+            executeStop = False
+            if stateId == 16 or stateId == 0:
+    	       if ch > timep[0]:
+                  if iid in d:
+                     suspendAsg(d[iid])
+                  time.sleep(0.300)
+                  stopInstance(ec2,iid)
+                  executeStop = True
+               if ch == timep[0] and cm >= timep[1]:
+                  print "about to stop",iid
+                  if iid in d:
+                     suspendAsg(d[iid])
+                  time.sleep(0.300)
+                  stopInstance(ec2,iid)
+                  executeStop = True
+            ## start
+
+            if not executeStop:
+              
+               timep = start_end_time('time:start',tags)
+               print "time:start (HH:mm)",timep[0],";",timep[1]
+               if stateId == 80:
+                  if ch > timep[0]:
+                     startInstances(ec2,iid)
+                  if ch == timep[0] and cm >= timep[1]:
+                     startInstances(ec2,iid)
+
+    return "OK"
