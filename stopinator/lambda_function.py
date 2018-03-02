@@ -47,7 +47,7 @@ def stopInstance(ec2,iid):
     print ec2.stop_instances(InstanceIds=[iid])
 
 ##start instance
-def startInstances(ec2,iid):
+def startInstance(ec2,iid):
     print ec2.start_instances(InstanceIds=[iid])
 
 ## load auto scaling load to a map
@@ -68,26 +68,33 @@ def initaliseall():
             d[iid] = asg['AutoScalingGroupName']
 
 
+
+
 def can_start(ch,cm, time_b,time_e):
  
   can = False
-  
-  if time_b[0] > ch and ch < time_e[0]:
+  print "ch",ch,"cm",cm,time_b,time_e
+  if ch > time_b[0] and ch < time_e[0]:
      can = True
      
-  if time_b[0] == ch and time_e[0] == ch and time_b[1] > cm and time_e[1] < cm:
+  if time_b[0] == ch and time_e[0] == ch and cm >= time_b[1]  and time_e[1] < cm:
      can = True
      
-  if time_b[0] == ch and time_b[1] > cm and ch < time_e[0]:
+  if time_b[0] == ch and time_b[1] >= cm:
      can = True
   
-  return can   
+  return can  
+
+
+
      
 def can_stop(ch,cm,time_b,time_e):
-  can = False;
-  if time_e[0] > ch:
+
+  can = False
+
+  if ch > time_e[0]:
      can = True
-  if time_e[0] == ch and time_e[1] > cm:
+  if time_e[0] == ch and cm > time_e[1]:
      can = True
 
   return can   
@@ -142,6 +149,7 @@ def lambda_handler(event, context):
             print "time:start (HH:mm)",time_b[0],";",time_b[1]
             if not executeStop:
                if stateId == 80:
+                  print "stateID",stateId 
                   if can_start(ch,cm,time_b,time_e):
                      print "STARTING INSTANCE",iid," TIME ",datetime_with_tz
                      startInstance(ec2,iid)
