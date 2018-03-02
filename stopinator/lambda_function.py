@@ -133,11 +133,11 @@ def lambda_handler(event, context):
             ## start /end time extraction from tags
             time_e = start_end_time('time:stop',tags)
             time_b = start_end_time('time:start',tags)
-            
+            print "AWS HH:mm",ch,";",cm           
             print "time:stop (HH:mm)",time_e[0],";",time_e[1]
             stated = i['State']
             stateId = stated.get('Code')
-            print stateId
+            print "Instance SateId:",stateId
             executeStop = False
             #stop condition
             if stateId == 16 or stateId == 0:
