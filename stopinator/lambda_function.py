@@ -74,13 +74,16 @@ def can_start(ch,cm, time_b,time_e):
  
   can = False
   print "ch",ch,"cm",cm,time_b,time_e
-  if ch > time_b[0] and ch < time_e[0]:
+  if ch > time_b[0] and ch <= time_e[0]:
+     print "cond1-start"
      can = True
      
   if time_b[0] == ch and time_e[0] == ch and cm >= time_b[1]  and time_e[1] < cm:
+     print "cond2-start"
      can = True
      
   if time_b[0] == ch and time_b[1] >= cm:
+     print "cond3-start"
      can = True
   
   return can  
