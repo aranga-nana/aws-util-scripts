@@ -57,7 +57,7 @@ def start_end_time(arg,tags):
    for x in tags:
 	if x['Key'] == arg:
 	   v = x['Value']
-           print v
+           #print v
            timepart= v.split(':')
            r[0]= int(timepart[0])
            r[1]=int(timepart[1])
@@ -68,7 +68,7 @@ def start_end_time(arg,tags):
 ## stop instance
 def stop_instance(ec2,instance,event):
     iid = instance.get("InstanceId")
-    current = start_end_time("time:start",instance.get("Tags"))
+    current = current_time(event)
     #print('stopiing instance ',iid)
     current = current_time(event)
     ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:stop:time","Value":current[2]}]) 
@@ -121,37 +121,45 @@ def initaliseall():
 def can_start(current, time_b,time_e,tags):
   ch = current[0]
   cm = current[1]
+
+  #dealing with manual stopping (make sure schedular not going to start it again)
   current_dtm = current[2]
   same_day = False
   last_start = get_tag_val("stopinator:start:time",tags)
+
   print "Last:start:time",last_start
+
   if not last_start:
      same_day = False
   else: 
-     ls_date = last_start.split("T")
      date = current_dtm.split("T")
+     ls_date = last_start.split("T")
      print "last start date:"+ls_date[0]+", current date:"+date[0]
      if date[0] == ls_date[0]:
+        #mark schedular is already started it.. cancel the starting operation if it see it should   
         same_day = True 
-  
+        
   can = False
-  print "ch",ch,"cm",cm,time_b,time_e
+  
   if ch > time_b[0] and ch < time_e[0]:
      print "cond1-start"
      can = True
      
   if time_b[0] == ch and time_e[0] == ch and cm >= time_b[1]  and time_e[1] < cm:
-     print "cond2-start"
+     #print "cond2-start"
      can = True
      
   if time_b[0] == ch and cm >= time_b[1]:
-     print "cond3-start"
+     #print "cond3-start"
      can = True
-  print "can before",can 
-  if can and same_day:
-     print "stopinator already startd this instance:not going to start again(do manually)"
+
+  #print "can before",can 
+
+  #if can and same_day:
+  #   print "stopinator already startd this instance:not going to start again(do manually)"
+
   can = can and not same_day
-  print "can",can
+  #print "can",can
   return can  
 
 
@@ -228,7 +236,7 @@ def lambda_handler(event, context):
                   print "STOPING INSTANCE",iid
                   if iid in d:
                      suspendAsg(d[iid])
-                     time.sleep(0.300)
+                     time.sleep(0.100)
                   stop_instance(ec2,i,event)
                   executeStop = True
             #start condition
