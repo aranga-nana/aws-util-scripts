@@ -72,7 +72,9 @@ def suspend_asg(name):
     response = asgclient.suspend_processes(
     	AutoScalingGroupName=name
     )
-    print response   
+    print response
+
+   
 def resume_asg(name):
     print "Resuming asg :"+name
     response = asgclient.resume_processes(
@@ -83,6 +85,7 @@ def resume_asg(name):
     response = asgclient.delete_tags(
     	Tags=[{
             "ResourceId": name,
+            "ResourceType":"auto-scaling-group", 
             "Key": CONST_ASG_RESUME_KEY,
         }]
     )
@@ -131,9 +134,19 @@ def start_instance(ec2,instance,event):
     #schedule asg resume if instance is part of ASG (need to make sure it resume after all the instance are on)
     if iid in d:
        name = d[iid];
-       ctime[1] = ctime[1]+10 
+       ctime[1] = ctime[1]+4 
        lt = ""+`ctime[0]`+":"+`ctime[1]`
-       asgclient.create_tags(Resources=[name], Tags=[{"Key":"stopinator:start:time","Value":lt}])
+       print "asg schedule time:"+lt
+       response = asgclient.create_or_update_tags(
+    		Tags=[{
+            	    "ResourceId": name,
+                    "Key": CONST_ASG_RESUME_KEY,
+                    "Value":lt,
+                    "ResourceType":"auto-scaling-group",
+                    "PropagateAtLaunch": False
+               }]
+       )
+       print response
 
 ## load auto scaling load to a map
 def scan_asg(event):
