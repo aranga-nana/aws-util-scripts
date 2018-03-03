@@ -11,7 +11,7 @@ import calendar
 
 
 #initalising
-aus = pytz.timezone ("Australia/NSW")
+default_timezone = "Australia/NSW"
 d={"1":"name"}
 
 ## get tag value by key
@@ -101,25 +101,61 @@ def can_stop(ch,cm,time_b,time_e):
      can = True
 
   return can   
- 
- 
 
+def currentTime(event):
+  current=[0,0]
+  tz = default_timezone
 
+  if not event:
+     tz = default_timezone
+     print "Loading default timezone`"
+  else:
+     tz = event.get("timezone")
+     if not tz:
+        tz = default_timezone
+        print "Loading default timezone "+default_timezone
+  
+  print tz 
+  timezone = pytz.timezone (tz)    
+    
+  datetime_with_tz = datetime.datetime.now(timezone) 	 
+  current[0] = datetime_with_tz.hour
+  current[1] = datetime_with_tz.minute
+  return current
+
+def instance_filter(event):
+    df =["linear*","linear-dev*"]
+    pattern = df
+    filters = [{'Name':'tag:stopinator','Values':['true']}]
+    if not event:
+       print "loading default pattern ",f
+    else:
+        pattern = event.get("target")
+        if not pattern:
+           pattern = df
+    f={'Values':pattern,'Name':'tag:Name'}   
+   
+    filters.append(f)     
+    return filters;
+ 
 def lambda_handler(event, context):
     
     print("event content:",event)
+     
     initaliseall()
     #curent time calc (diffrent time zone support)
-    datetime_with_tz = datetime.datetime.now(aus) # No daylight saving time
-    ch= datetime_with_tz.hour
-    cm= datetime_with_tz.minute
-    print "AWS Current Time (HH:MM)",ch,";",cm
+    current = currentTime(event)
     
-
+    ch = current[0]
+    cm = current[1]
+    awstime = "Execute Time: "+`ch`+":"+`cm`+" hours."
 
     ec2 = boto3.client('ec2',region_name='ap-southeast-2')
-    filters = [{'Name': 'tag:Name', 'Values': ['lin*'] },{'Name':'tag:stopinator','Values':['true']}]
+    filters = instance_filter(event)
+    print "Using filters",filters
     reservations=ec2.describe_instances(Filters=filters)
+    print "found  "+`len(reservations['Reservations'])`+" Reservation matches"
+
     for r in reservations['Reservations']:
         #print(r,"\n\n")
         #print(r,"=======================================")
@@ -128,19 +164,20 @@ def lambda_handler(event, context):
             print('checking instance id',iid)
             date= i.get('LaunchTime')
             tags =i['Tags']
-            print "analysing instance :",iid," -",get_tag_val("Name",tags)
+            print "analysing instance :"+`iid`+" - "+get_tag_val("Name",tags)
 
             ## start /end time extraction from tags
             time_e = start_end_time('time:stop',tags)
             time_b = start_end_time('time:start',tags)
-            print "AWS HH:mm",ch,";",cm           
-            print "time:stop (HH:mm)",time_e[0],";",time_e[1]
+            print awstime           
+            print "time:stop  (HH:mm)"+`time_e[0]`+":"+`time_e[1]`
+            print "time:start (HH:mm)"+`time_b[0]`+":"+`time_b[1]` 
             stated = i['State']
             stateId = stated.get('Code')
-            print "Instance SateId:",stateId
+            print "current instance SateId:"+`stateId`
             executeStop = False
             #stop condition
-            if stateId == 16 or stateId == 0:
+            if stateId == 16:
                if can_stop(ch,cm,time_b,time_e):
                   print "STOPING INSTANCE",iid
                   if iid in d:
@@ -149,7 +186,6 @@ def lambda_handler(event, context):
                   stopInstance(ec2,iid)
                   executeStop = True
             #start condition
-            print "time:start (HH:mm)",time_b[0],";",time_b[1]
             if not executeStop:
                if stateId == 80:
                   print "stateID",stateId 
