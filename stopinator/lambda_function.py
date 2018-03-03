@@ -38,6 +38,7 @@ def current_time(event):
   return current
 
 
+
 ## get tag value by key
 def get_tag_val(arg,tags):
     val = ""
@@ -66,12 +67,30 @@ def start_end_time(arg,tags):
 
 
 ## stop instance
+def suspend_asg(name):
+    
+    response = client.suspend_processes(
+    	AutoScalingGroupName=name
+    )
+    print response   
+def resume_asg(name):
+    response = client.resume_processes(
+    	AutoScalingGroupName=name,
+    )
+
+
 def stop_instance(ec2,instance,event):
     iid = instance.get("InstanceId")
     current = current_time(event)
     #print('stopiing instance ',iid)
     current = current_time(event)
-    ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:stop:time","Value":current[2]}]) 
+    ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:stop:time","Value":current[2]}])
+    if iid in d:
+        print "has associated asg.need to suspend it first"
+        asg = d[iid]
+        suspend_asg(asg)
+        
+    
     print ec2.stop_instances(InstanceIds=[iid])
 
 
@@ -234,9 +253,6 @@ def lambda_handler(event, context):
             if stateId == 16:
                if can_stop(ch,cm,time_b,time_e):
                   print "STOPING INSTANCE",iid
-                  if iid in d:
-                     suspendAsg(d[iid])
-                     time.sleep(0.100)
                   stop_instance(ec2,i,event)
                   executeStop = True
             #start condition
