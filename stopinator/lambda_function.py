@@ -89,7 +89,7 @@ def resume_asg(name):
             "Key": CONST_ASG_RESUME_KEY,
         }]
     )
-    print respone
+    print response
     
 
 
