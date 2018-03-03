@@ -8,11 +8,11 @@ import calendar
 
 
 #TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
-
+CONST_ASG_RESUME_KEY="stopinator:resume:time"
 
 #initalising
 default_timezone = "Australia/NSW"
-
+asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
 
 d={"1":"name"}
 def current_time(event):
@@ -68,15 +68,26 @@ def start_end_time(arg,tags):
 
 ## stop instance
 def suspend_asg(name):
-    
-    response = client.suspend_processes(
+    print "suspending asg:"+name    
+    response = asgclient.suspend_processes(
     	AutoScalingGroupName=name
     )
     print response   
 def resume_asg(name):
-    response = client.resume_processes(
+    print "Resuming asg :"+name
+    response = asgclient.resume_processes(
     	AutoScalingGroupName=name,
     )
+    print response
+    print "remove schedule"  
+    response = asgclient.delete_tags(
+    	Tags=[{
+            "ResourceId": name,
+            "Key": CONST_ASG_RESUME_KEY,
+        }]
+    )
+    print respone
+    
 
 
 def stop_instance(ec2,instance,event):
@@ -101,7 +112,8 @@ def start_instance(ec2,instance,event):
     print ec2.start_instances(InstanceIds=[iid])
     ctime = current_time(event)
     cdate = ctime[2].split("T")
-    
+        
+
     current = start_end_time("time:start",instance.get("Tags"))
     hh=""
     if current[0] < 10:
@@ -116,9 +128,15 @@ def start_instance(ec2,instance,event):
        cdatetime = cdatetime+`current[1]`
      
     ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:start:time","Value":cdatetime}])
+    #schedule asg resume if instance is part of ASG (need to make sure it resume after all the instance are on)
+    if iid in d:
+       name = d[iid];
+       ctime[1] = ctime[1]+10 
+       lt = ""+`ctime[0]`+":"+`ctime[1]`
+       asgclient.create_tags(Resources=[name], Tags=[{"Key":"stopinator:start:time","Value":lt}])
 
 ## load auto scaling load to a map
-def initaliseall():
+def scan_asg(event):
 
 
     print "loading autoscale groups"
@@ -129,10 +147,24 @@ def initaliseall():
     #nextToken = response['NextToken']
     asgs = response['AutoScalingGroups']
     for asg in asgs:
+        name = asg['AutoScalingGroupName']
+        tags = asg["Tags"]
+        ## starting suspended asgs based on tiem 
+        v = start_end_time(CONST_ASG_RESUME_KEY,tags)
+        if not v:
+           print "no asg schedule(nothing to resume)"
+        else:
+           c = current_time(event)
+           if c[0] > v[0]:
+              resume_asg(name)
+           if c[0]==v[0] and c[1] >= v[1]:
+              resume_asg(name)
+        # end asg stuff
+
         #print asg['AutoScalingGroupName'],'\n'
         for instance in asg['Instances']:
             iid= instance['InstanceId']
-            d[iid] = asg['AutoScalingGroupName']
+            d[iid] = name
 
 
 
@@ -191,6 +223,7 @@ def can_stop(ch,cm,time_b,time_e):
   if ch > time_e[0]:
      can = True
   if time_e[0] == ch and cm >= time_e[1]:
+     print "cond-2-stop"
      can = True
 
   return can   
@@ -215,7 +248,7 @@ def lambda_handler(event, context):
     
     print("event content:",event)
      
-    initaliseall()
+    scan_asg(event)
     #curent time calc (diffrent time zone support)
     current = current_time(event)
     
@@ -258,7 +291,7 @@ def lambda_handler(event, context):
             #start condition
             if not executeStop:
                if stateId == 80:
-                  print "stateID",stateId 
+                  print "Instance stateId:"+`stateId` 
                   if can_start(current,time_b,time_e,tags):
                      print "STARTING INSTANCE:"+iid
                      start_instance(ec2,i,event)
