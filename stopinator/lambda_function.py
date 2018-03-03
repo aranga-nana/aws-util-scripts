@@ -34,7 +34,7 @@ def current_time(event):
   datetime_with_tz = datetime.datetime.now(timezone)
   current[0] = datetime_with_tz.hour
   current[1] = datetime_with_tz.minute
-  current[2] = datetime_with_tz.strftime("%Y-%M-D %h:%m")
+  current[2] = datetime_with_tz.strftime("%Y-%m-%dT%H:%M")
   return current
 
 
@@ -68,19 +68,35 @@ def start_end_time(arg,tags):
 ## stop instance
 def stop_instance(ec2,instance,event):
     iid = instance.get("InstanceId")
+    current = start_end_time("time:start",instance.get("Tags"))
     #print('stopiing instance ',iid)
-    print ec2.stop_instances(InstanceIds=[iid])
     current = current_time(event)
-     
-    ec2.create_tag(Resources[iid],Tags=[{"Key":"stopinator:stop:time","Value":current[2]}]) 
+    ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:stop:time","Value":current[2]}]) 
+    print ec2.stop_instances(InstanceIds=[iid])
+
+
 
 ##start instanc
 def start_instance(ec2,instance,event):
     iid = instance.get("InstanceId")
     print ec2.start_instances(InstanceIds=[iid])
+    ctime = current_time(event)
+    cdate = ctime[2].split("T")
+    
+    current = start_end_time("time:start",instance.get("Tags"))
+    hh=""
+    if current[0] < 10:
+       hh="0"+`current[0]`
+    else:
+       hh=""+`current[0]`  
+    cdatetime = cdate[0]+"T"+hh+":"
 
-    current = current_time(event)
-    ec2.create_tag(Resources=[iid], Tags=[{"Key":"stopinator:start:time","Value":current[2]}])
+    if current[1] < 10:
+       cdatetime = cdatetime + "0"+`current[1]`
+    else:
+       cdatetime = cdatetime+`current[1]`
+     
+    ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:start:time","Value":cdatetime}])
 
 ## load auto scaling load to a map
 def initaliseall():
@@ -102,8 +118,22 @@ def initaliseall():
 
 
 
-def can_start(ch,cm, time_b,time_e):
- 
+def can_start(current, time_b,time_e,tags):
+  ch = current[0]
+  cm = current[1]
+  current_dtm = current[2]
+  same_day = False
+  last_start = get_tag_val("stopinator:start:time",tags)
+  print "Last:start:time",last_start
+  if not last_start:
+     same_day = False
+  else: 
+     ls_date = last_start.split("T")
+     date = current_dtm.split("T")
+     print "last start date:"+ls_date[0]+", current date:"+date[0]
+     if date[0] == ls_date[0]:
+        same_day = True 
+  
   can = False
   print "ch",ch,"cm",cm,time_b,time_e
   if ch > time_b[0] and ch < time_e[0]:
@@ -117,7 +147,11 @@ def can_start(ch,cm, time_b,time_e):
   if time_b[0] == ch and cm >= time_b[1]:
      print "cond3-start"
      can = True
-  
+  print "can before",can 
+  if can and same_day:
+     print "stopinator already startd this instance:not going to start again(do manually)"
+  can = can and not same_day
+  print "can",can
   return can  
 
 
@@ -201,7 +235,7 @@ def lambda_handler(event, context):
             if not executeStop:
                if stateId == 80:
                   print "stateID",stateId 
-                  if can_start(ch,cm,time_b,time_e):
+                  if can_start(current,time_b,time_e,tags):
                      print "STARTING INSTANCE:"+iid
                      start_instance(ec2,i,event)
                              
