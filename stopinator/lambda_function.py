@@ -35,6 +35,8 @@ def lambda_handler(event, context):
         pattern = event.get("pattern")
         if not tz:
             tz = CONST_TZ
+            print "loading default timezone:"+tz
+
         if not pattern:
             pattern =["linear.*"]
 

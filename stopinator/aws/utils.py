@@ -228,11 +228,14 @@ def can_stop(ch,cm,time_b,time_e):
 
 
 def instance_filter(pattern):
-    df =["linear*","linear-dev*"]
-    pattern = df
+    df =["acn01*","acn-dev*"]
+
     filters = [{'Name':'tag:stopinator','Values':['true']}]
     if not pattern:
-       print "loading default pattern ",f
+        print "loading default pattern ",df
+        pattern =df;
+   else:
+       print "loading pattern :"+
 
     f={'Values':pattern,'Name':'tag:Name'}
 
