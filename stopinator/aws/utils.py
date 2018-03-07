@@ -234,8 +234,8 @@ def instance_filter(pattern):
     if not pattern:
         print "loading default pattern ",df
         pattern =df;
-   else:
-       print "loading pattern :"+
+    else:
+        print "loading pattern :"+
 
     f={'Values':pattern,'Name':'tag:Name'}
 
