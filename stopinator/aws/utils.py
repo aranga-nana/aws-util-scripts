@@ -8,7 +8,7 @@ import calendar
 
 
 CONST_ASG_RESUME_KEY="stopinator:resume:time"
-
+CONST_STOPINATOR_STOP_TIME="stopinator:stop:time"
 
 #initalising
 default_timezone = "Australia/NSW"
@@ -214,10 +214,11 @@ def can_start(current, time_b,time_e,tags):
   return can
 
 
-def can_stop(ch,cm,time_b,time_e):
+def can_stop(current,time_b,time_e):
 
   can = False
-
+  ch = current[0]
+  cm = current[1]
   if ch > time_e[0]:
      can = True
   if time_e[0] == ch and cm >= time_e[1]:
