@@ -74,64 +74,56 @@ def get_most_reason_snapshot(clusterIdentifier):
     slist.sort(key=lambda k: k['SnapshotCreateTime'],reverse=True)
     return slist[0]
 
-def start_db(snapshot,cluster_name):
-    
-    response = rds.restore_db_cluster_from_snapshot(
+def list_cluster():
+    response = rds.describe_db_clusters()
+    return response['DBClusters']
 
-        DBClusterIdentifier=cluster_name,
-        SnapshotIdentifier=snapshot,
-        Engine='aurora',
-        DBSubnetGroupName='bauuat-rdsstack-mysql-subnetgroup',
-        VpcSecurityGroupIds=[
-            'sg-b208d4cb',
-        ],
-        Tags=[
-            {
-                'Key': 'stopinator:restore:status',
-                'Value': 'false'
-            },
-            {
-                'Key': 'Name',
-                'Value': cluster_name
-            },
-            {
-                'Key': 'snaphost:name',
-                'Value': snapshot
-            }
-        ]
+def start_db(snapshot,cluster_name):
+
+    response = rds.restore_db_cluster_from_snapshot(
+            DBClusterIdentifier=cluster_name,
+            SnapshotIdentifier=snapshot,
+            Engine='aurora',
+            DBSubnetGroupName='bauuat-rdsstack-mysql-subnetgroup',
+            VpcSecurityGroupIds=[
+                'sg-b208d4cb',
+            ],
+            Tags=[
+                    {
+                        'Key': 'stopinator:restore:status',
+                        'Value': 'false'
+                    },
+                    {
+                        'Key': 'Name',
+                        'Value': cluster_name
+                    },
+                    {
+                        'Key': 'snaphost:name',
+                        'Value': snapshot
+                    }
+            ]
     )
     print response
     print "================ cluster creation =============================="
     response = rds.create_db_instance(
-        DBInstanceIdentifier=cluster_name+"-instance",
-        DBInstanceClass="db.t2.small",
-        Engine='aurora',
-        DBClusterIdentifier=cluster_name,
-        Tags=[
-            {
-                'Key': 'stopinator:restore:status',
-                'Value': 'false'
-            },
-            {
-                'Key': 'Name',
-                'Value': cluster_name
-            },
-            {
-                'Key': 'snaphost:name',
-                'Value': snapshot
-            }
-        ]
-
-
-
+            DBInstanceIdentifier=cluster_name+"-instance",
+            DBInstanceClass="db.t2.small",
+            Engine='aurora',
+            DBClusterIdentifier=cluster_name,
+            Tags=[
+                    {
+                        'Key': 'stopinator:restore:status',
+                        'Value': 'false'
+                    },
+                    {
+                        'Key': 'Name',
+                        'Value': cluster_name
+                    },
+                    {
+                        'Key': 'snaphost:name',
+                        'Value': snapshot
+                    }
+            ]
     )
     print response
     print "================ cluster instance creation =============================="
-
-        DBSnapshotIdentifier='start-db-acnonline-prod-2018-03-09-11-03',
-        LicenseModel='string',
-        Engine='aurora'
-
-    )
-
-    print response
