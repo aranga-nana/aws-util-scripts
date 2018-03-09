@@ -44,6 +44,11 @@ def lambda_handler(event, context):
 
     current = utils.current_time(tz)
 
+    ch = current[0]
+    cm = current[1]
+    awstime = "Execute Time: "+`ch`+":"+`cm`+" hours."
+
+
     filters = utils.instance_filter(pattern)
     print "Using filters",filters
     reservations=ec2.describe_instances(Filters=filters)
@@ -62,9 +67,7 @@ def lambda_handler(event, context):
             ## start /end time extraction from tags
             time_e = utils.get_time('time:stop',tags)
             time_b = utils.get_time('time:start',tags)
-            tt = current[2].split("T")
-            print "current time :"+tt[1]+"("+tz+")"
-
+            print awstime
             print "time:stop  (HH:mm)"+`time_e[0]`+":"+`time_e[1]`
             print "time:start (HH:mm)"+`time_b[0]`+":"+`time_b[1]`
             stated = i['State']
@@ -73,7 +76,7 @@ def lambda_handler(event, context):
             executeStop = False
             #stop condition
             if stateId == 16:
-               if utils.can_stop(current,time_b,time_e):
+               if utils.can_stop(ch,cm,time_b,time_e):
                   print "STOPING INSTANCE",iid
                   utils.stop_instance(i,asg_instance,tz)
                   executeStop = True
