@@ -76,7 +76,7 @@ def lambda_handler(event, context):
             executeStop = False
             #stop condition
             if stateId == 16:
-               if utils.can_stop(ch,cm,time_b,time_e):
+               if utils.can_stop(current,time_b,time_e):
                   print "STOPING INSTANCE",iid
                   utils.stop_instance(i,asg_instance,tz)
                   executeStop = True
