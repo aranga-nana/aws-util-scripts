@@ -125,29 +125,32 @@ def update_progress(item, **kwargs):
 def list_rds_schedule(**kwargs):
     table = dynamodb.Table(CONST_TABLE)
     r =[]
-    if kwargs.get('StopTime') >0:
-        response = table.scan(
-            FilterExpression=Attr('time_stop_hh').eq(kwargs.get('StopTime'))
-        )
-        r = response['Items']
+    try:
+        if kwargs.get('StopTime') >0:
 
-    if kwargs.get('MarkDelete'):
-        response = table.scan(
-            FilterExpression=Attr('stopinator:progress').eq('mark-delete')
-        )
-        r = response['Items']
+            response = table.scan(
+                FilterExpression=Attr('time_stop_hh').eq(kwargs.get('StopTime'))
+            )
+            r = response['Items']
 
-    if kwargs.get('StartTime') >=0:
-        response = table.scan(
-            FilterExpression=Attr('time_start_hh').eq(kwargs.get('StartTime'))
-        )
-        r = response['Items']
-    if kwargs.get('Deleted'):
-        response = table.scan(
-            FilterExpression=Attr('stopinator:progress').eq('deleted')
-        )
-        r = response['Items']
+        if kwargs.get('MarkDelete'):
+            response = table.scan(
+                FilterExpression=Attr('stopinator:progress').eq('mark-delete')
+            )
+            r = response['Items']
 
+        if kwargs.get('StartTime') >=0:
+            response = table.scan(
+                FilterExpression=Attr('time_start_hh').eq(kwargs.get('StartTime'))
+            )
+            r = response['Items']
+        if kwargs.get('Deleted'):
+            response = table.scan(
+                FilterExpression=Attr('stopinator:progress').eq('deleted')
+            )
+            r = response['Items']
+    except Exception as e:
+        pass
     return r
 
 
