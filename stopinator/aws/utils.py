@@ -63,6 +63,17 @@ def get_tag_val(arg,tags):
        if x['Key'] == arg:
           val = x['Value']
     return val
+def update_tags(tags,tag):
+    m = -1
+    i =0
+    for t in tags:
+        if t['Key'] == tag.get('Key'):
+            m = i
+        i=i+1
+    if (m == -1):
+        tags.append(tag)
+    else:
+        tags[m] = tag
 
 ## get start/end time defined in ec2 tags
 ## time:start /time:stop
@@ -212,15 +223,15 @@ def can_start(current, time_b,time_e,tags):
   can = False
 
   if ch > time_b[0] and ch < time_e[0]:
-     print "cond1-start"
+     #print "cond1-start"
      can = True
 
   if time_b[0] == ch and time_e[0] == ch and cm >= time_b[1]  and time_e[1] < cm:
-     print "cond2-start"
+     #print "cond2-start"
      can = True
 
   if time_b[0] == ch and cm >= time_b[1]:
-     print "cond3-start"
+     #print "cond3-start"
      can = True
 
   can = can and not same_day

@@ -7,6 +7,7 @@ def lambda_handler(event, context):
     current = utils.current_time(tz)
 
     ##starting Instance
+    print current[0]
     startlist = aurora.list_rds_schedule(StartTime=current[0])
     for s in startlist:
         tags =s.get("tags")
@@ -14,22 +15,23 @@ def lambda_handler(event, context):
         time_s =  utils.get_time("time:start",tags)
         time_e =   utils.get_time("time:stop",tags)
 
-        #print current,time_s,time_e
-        #print "start", time_s[0],time_s[1],s.get('stopinator:progress')
+        print current,time_s,time_e
+        print "start", time_s[0],time_s[1],s.get('stopinator:progress')
         if  s.get('stopinator:progress') == 'deleted' and utils.can_start(current,time_s,time_e,tags):
             print "starting cluster :"+s.get("cluster_name")+" ..."
             print s.get('security_group_ids')
+            tags =s.get("Tags")
+            tags['stopinator:start:time']=current[2]
+            s['Tags'] =tags
             success = aurora.start_db(
                 SnapshotName=s.get("stopinator:snapshot"),
                 ClusterName=s.get("cluster_name"),
                 SubnetGroupName=s.get("subnet_group"),
                 SecurityGroupIds=s.get('security_group_ids'),
-                Tags=s.get("tags")
+                Tags=tags
             )
             if success:
-                tags.append({"Key":"stopinator:start:time","Value":current[2]})
-                s['tags'] =tags
-                s['stopinator:snapshot']=None
+                ts = utils.current_time(tz)
                 aurora.update_progress(s,Progress='starting')
             else:
                 print "starting cluster :"+s.get("cluster_name")+" Failed!!!!"
@@ -45,7 +47,7 @@ def lambda_handler(event, context):
                 else:
                     if s.get('stopinator:progress') == 'witing-update' and info.get('DBClusterParameterGroupStatus') == 'in-sync':
                         dt = utils.current_time(tz)
-                        s['stopinator:start-completed'] = ds[2]
+                        s['stopinator:start-completed'] = dt[2]
                         aurora.update_progress(s,Progress='started')
 
 
@@ -92,13 +94,12 @@ def lambda_handler(event, context):
                 ts = ct[2].replace(":","-")
                 ts = ts.replace("T","-")
                 name = 'stopinator-'+c_name+'-'+ts
-                ss = s.get('stopinator:snapshot')
-                print ss;
                 if not s.get('stopinator:snapshot'):
                     print "creating snapshot :"+name
-                    name = name.replace(":","-")
-                    aurora.update_progress(s,SnapshotName=name,Progress='create-snapshot')
-                    aurora.create_snapshot(c_name,name)
+                    sname=aurora.create_snapshot(c_name,name)
+                    s['stopinator:snapshot']=sname
+                    aurora.update_progress(s,SnapshotName=sname,Progress='create-snapshot')
+
             if s.get('stopinator:progress') == 'create-snapshot' and cs['Status']== 'available' and info['Status'] == 'available':
                 print "creating snapshot:"+s.get('stopinator:snapshot')
                 sstatus = aurora.check_status_snapshot(s.get('stopinator:snapshot'))

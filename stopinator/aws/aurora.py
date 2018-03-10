@@ -131,7 +131,7 @@ def list_rds_schedule(**kwargs):
         )
         r = response['Items']
 
-    if kwargs.get('StartTime') >0:
+    if kwargs.get('StartTime') >=0:
         response = table.scan(
             FilterExpression=Attr('time_start_hh').eq(kwargs.get('StartTime'))
         )
@@ -250,6 +250,7 @@ def create_snapshot(clusterIdentifier,name):
 
     r= response['DBClusterSnapshot']
     print r.get('Status')
+    return r.get('DBClusterSnapshotIdentifier')
 
 
 def reboot(identifier):
