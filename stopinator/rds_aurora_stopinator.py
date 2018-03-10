@@ -1,5 +1,5 @@
 from aws import utils,aurora
-
+import time
 aurora.init_table()
 def lambda_handler(event, context):
 
