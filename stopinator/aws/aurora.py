@@ -43,6 +43,12 @@ def check_status_snapshot(snapshot):
          return s[0]['Status']
     else:
         return 'pending'
+
+def cleanup(identifier):
+    response = rds.delete_db_cluster(
+        DBClusterIdentifier=identifier,
+        SkipFinalSnapshot=True
+    )
 def delete(identifier):
     response = rds.delete_db_instance(
         DBInstanceIdentifier=identifier,
@@ -191,7 +197,11 @@ def list_cluster(**kwargs):
             #print c['InstanceInfo']
             c['InstanceInfo'] = extra
             res.append(c)
-
+        else:
+            if c["Status"] == 'available':
+                cleanup(c['DBClusterIdentifier'])
+                print "deleting ophan cluster ",c['DBClusterIdentifier']
+                c["Status"] ="deleting"
     #print res
     return res
 
