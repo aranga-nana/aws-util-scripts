@@ -15,7 +15,16 @@ default_timezone = "Australia/NSW"
 asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
 ec2 = boto3.client('ec2',region_name="ap-southeast-2")
 
-
+def get_tz(event):
+    tz=default_timezone
+    print event
+    if not event:
+        tz = default_timezone
+    else:
+        tz = event.get("timezone")
+        if not tz:
+            tz = default_timezone
+    return tz
 ## get tag value by key
 def get_tag_val(arg,tags):
     val = ""
