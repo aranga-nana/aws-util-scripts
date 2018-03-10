@@ -52,6 +52,7 @@ def lambda_handler(event, context):
                         s['stopinator:start-completed'] = dt[2]
                         s['stopinator:snapshot'] = None
                         aurora.update_progress(s,Progress='started')
+                        print "Cluster:"+s['cluster_name']+" started.."
 
 
     ##updating cluster information
@@ -98,6 +99,7 @@ def lambda_handler(event, context):
                 ts = ct[2].replace(":","-")
                 ts = ts.replace("T","-")
                 name = 'stopinator-'+c_name+'-'+ts
+                print s.get('stopinator:progress')
                 if s.get('stopinator:progress') != 'create-snapshot' and s.get('stopinator:progress') != 'mark-delete':
                     print "creating snapshot :"+name
                     sname=aurora.create_snapshot(c_name,name)
@@ -109,7 +111,7 @@ def lambda_handler(event, context):
                 sstatus = aurora.check_status_snapshot(s.get('stopinator:snapshot'))
                 print "creating snapshot status: "+sstatus
                 if sstatus == 'available':
-                    aurora.update_progress(s,SnapshotName=name,Progress='mark-delete')
+                    aurora.update_progress(s,Progress='mark-delete')
             if s.get('stopinator:progress') == 'mark-delete':
                 print "pending delete..waiting"
 
