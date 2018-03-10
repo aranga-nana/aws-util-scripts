@@ -123,7 +123,7 @@ def list_rds_schedule(**kwargs):
         )
         r = response['Items']
 
-    if kwargs.get('Deleted'):
+    if kwargs.get('MarkDelete'):
         response = table.scan(
             FilterExpression=Attr('stopinator:progress').eq('mark-delete')
         )
@@ -132,6 +132,11 @@ def list_rds_schedule(**kwargs):
     if kwargs.get('StartTime') >0:
         response = table.scan(
             FilterExpression=Attr('time_start_hh').eq(kwargs.get('StartTime'))
+        )
+        r = response['Items']
+    if kwargs.get('Deleted'):
+        response = table.scan(
+            FilterExpression=Attr('stopinator:progress').eq('deleted')
         )
         r = response['Items']
 
