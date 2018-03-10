@@ -14,10 +14,15 @@ CONST_STOPINATOR_STOP_TIME="stopinator:stop:time"
 default_timezone = "Australia/NSW"
 asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
 ec2 = boto3.client('ec2',region_name="ap-southeast-2")
-
+def get_hh_mm(str):
+    r=[0,0]
+    m= str.split(":")
+    r[0] =int(m[0])
+    r[1] =int(m[1])
+    return r
 def get_tz(event):
     tz=default_timezone
-    print event
+    #print event
     if not event:
         tz = default_timezone
     else:
@@ -40,7 +45,7 @@ def current_time(tz):
   if not tz:
      tz = default_timezone
      print "Loading default timezone`"
-  print tz
+  #print tz
   timezone = pytz.timezone (tz)
 
   datetime_with_tz = datetime.datetime.now(timezone)
