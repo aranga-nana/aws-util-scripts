@@ -20,8 +20,9 @@ def lambda_handler(event, context):
         if  s.get('stopinator:progress') == 'deleted' and utils.can_start(current,time_s,time_e,tags):
             print "starting cluster :"+s.get("cluster_name")+" ..."
             print s.get('security_group_ids')
-            tags =s.get("Tags")
-            tags['stopinator:start:time']=current[2]
+            tags =s.get("tags")
+            utils.update_tags(tags,{"Key":"stopinator:start:time","Value":current[2]})
+            print tags
             s['Tags'] =tags
             success = aurora.start_db(
                 SnapshotName=s.get("stopinator:snapshot"),
@@ -62,6 +63,7 @@ def lambda_handler(event, context):
         i_name= info['DBInstanceIdentifier']
         print "Analysing db cluster: "+c_name+"["+info.get('Status')+"]"
         if cs['Status']== 'available' and info['Status'] == 'available':
+            print "re-sync metadat, cluster:"+c_name
             aurora.sync_metadata(cs)
         else:
             print "DBCluster :"+c_name+", Cluster-Status:"+cs['Status']+", Instance-status:"+info['Status']
