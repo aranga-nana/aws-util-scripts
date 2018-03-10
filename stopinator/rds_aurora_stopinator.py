@@ -73,7 +73,7 @@ def lambda_handler(event, context):
     #
     stoplist =aurora.list_rds_schedule(StopTime=current[0])
     for s in stoplist:
-        print "Analysing Cluster to Stop :"+ s['cluster_name']
+
         c = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])
         snapshot = s.get('stopinator:snapshot')
         progress = s.get('stopinator:progress')
@@ -87,6 +87,7 @@ def lambda_handler(event, context):
             time_b= utils.get_time('time:start',tags)
 
             if utils.can_stop(current,time_b,time_e) and cs['Status']== 'available' and info['Status'] == 'available':
+                print "Stopiing Cluster "+ s['cluster_name']+" ..."
                 ct = utils.current_time(tz)
                 ts = ct[2].replace(":","-")
                 ts = ts.replace("T","-")
