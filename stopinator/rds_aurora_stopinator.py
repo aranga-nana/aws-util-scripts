@@ -34,6 +34,7 @@ def lambda_handler(event, context):
             if success:
                 ts = utils.current_time(tz)
                 aurora.update_progress(s,Progress='starting')
+                time.sleep(.200)
             else:
                 print "starting cluster :"+s.get("cluster_name")+" Failed!!!!"
         else:
@@ -61,7 +62,7 @@ def lambda_handler(event, context):
         #print cs
         c_name = cs['DBClusterIdentifier']
         cstatus = cs['Status']
-
+        cs['DB']
         info = cs['InstanceInfo']
         i_name= info['DBInstanceIdentifier']
         print "Analysing db cluster: "+c_name+"["+info.get('Status')+"]"
