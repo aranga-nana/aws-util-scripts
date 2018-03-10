@@ -55,9 +55,16 @@ def sync_metadata(cs):
 
     cluster_name = cs.get('DBClusterIdentifier')
     info = cs.get('InstanceInfo')
-    hhmm = utils.get_time('time:stop',info.get('Tags'))
-    sshh = utils.get_time('time:start',info.get('Tags'))
     tags = info.get('Tags')
+    hhmm = utils.get_time('time:stop',tags)
+    sshh = utils.get_time('time:start',tags)
+    #extract security groups
+    sgs = cs['VpcSecurityGroups']
+    #print sgs
+    securityGroupIds =[]
+    for sg in sgs:
+        securityGroupIds.append(sg['VpcSecurityGroupId'])
+
     table = dynamodb.Table(CONST_TABLE)
 
     Found = False
@@ -74,11 +81,9 @@ def sync_metadata(cs):
             "tags":tags,
             "cluster_parameter_group":cs.get('DBClusterParameterGroup'),
             "subnet_group":cs.get('DBSubnetGroup'),
-            "option_group":"default:aurora-5-6",
-            "security_group_name":"rds-launch-wizard",
+            "security_group_ids":securityGroupIds,
             "db_instance_name":info.get('DBInstanceIdentifier'),
-            "time:start":utils.get_tag_val('time:start',tags),
-            "time:end":utils.get_tag_val('time:stop',tags)
+
     }
     if len(response.get('Items'))>0:
        item = response['Items'][0]
@@ -87,14 +92,14 @@ def sync_metadata(cs):
        item["tags"]=tags
        item["cluster_parameter_group"]=cs.get('DBClusterParameterGroup')
        item["subnet_group"] = cs.get('DBSubnetGroup')
-       item["option_group"] = "default:aurora-5-6"
-       item["security_group_name"] = "rds-launch-wizard"
+       item["security_group_ids"] =securityGroupIds
        item["db_instance_name"] = info.get('DBInstanceIdentifier')
-       item["time:start"] = utils.get_tag_val('time:start',tags)
-       item["time:end"] = utils.get_tag_val('time:stop',tags)
+
 
     response = table.put_item(Item = item)
     time.sleep(.120)
+
+## update the progress -diffrent stage of the start/delete cycle
 def update_progress(item, **kwargs):
     snapshot = kwargs.get('SnapshotName')
     progress = kwargs.get('Progress')
@@ -133,25 +138,17 @@ def list_rds_schedule(**kwargs):
     return r
 
 
-def get_most_reason_snapshot(clusterIdentifier):
-    response = rds.describe_db_cluster_snapshots(
-        DBClusterIdentifier=clusterIdentifier,
-        SnapshotType='manual'
 
-    )
-    slist = response['DBClusterSnapshots']
-
-    slist = list(filter(lambda x: x['DBClusterSnapshotIdentifier'].startswith('start-db'), slist))
-    slist.sort(key=lambda k: k['SnapshotCreateTime'],reverse=True)
-    return slist[0]
-
+#list db instace infor based on identifier
+#Helper to list_cluster()
 def list_member_info(identifier):
     response = rds.describe_db_instances(DBInstanceIdentifier=identifier)
     if len(response['DBInstances'][0]) >0:
         return response['DBInstances'][0]
     return None
 
-
+## list db cluster
+##Note modify original response with db instance information as well
 def list_cluster(**kwargs):
     response = None
     if not kwargs.get("ClusterIdentifier"):
@@ -175,17 +172,12 @@ def list_cluster(**kwargs):
 
             tags = rds.list_tags_for_resource(ResourceName=i['DBInstanceArn'])['TagList']
             extra['Tags'] = tags
-            #print tags
-            if i['DBInstanceStatus'] == 'available':
-                v = utils.get_tag_val('stopinator:restore:status',tags)
-                if (v == 'false'):
-                    c['AvailableUpdate'] = True
 
             #print c['InstanceInfo']
             c['InstanceInfo'] = extra
             res.append(c)
 
-    #print r
+    #print res
     return res
 
 def start_db(**kwargs):
@@ -197,6 +189,8 @@ def start_db(**kwargs):
         return False
     if not kwargs.get("Tags"):
         return False
+    if not kwargs.get("SecurityGroupIds"):
+        return False
     cluster_name = kwargs.get("ClusterName")
     snapshot =  kwargs.get("SnapshotName")
 
@@ -205,13 +199,11 @@ def start_db(**kwargs):
             SnapshotIdentifier=snapshot,
             Engine='aurora',
             DBSubnetGroupName=kwargs.get("SubnetGroupName"),
-            VpcSecurityGroupIds=[
-                'sg-b208d4cb',
-            ],
+            VpcSecurityGroupIds=kwargs.get("SecurityGroupIds"),
             Tags=kwargs.get("Tags")
     )
-    print response
-    print "================ cluster creation =============================="
+    r= response['DBCluster']
+    print r.get('Status')
     response = rds.create_db_instance(
             DBInstanceIdentifier=cluster_name+"-instance",
             DBInstanceClass="db.t2.small",
@@ -219,8 +211,9 @@ def start_db(**kwargs):
             DBClusterIdentifier=cluster_name,
             Tags=kwargs.get("Tags")
     )
-    print response
-    print "================ cluster instance creation =============================="
+    r= response['DBInstance']
+    print r.get('DBInstanceStatus')
+
     return True
 
 def modify_cluster_group(cluster,param_name):
@@ -228,17 +221,34 @@ def modify_cluster_group(cluster,param_name):
     DBClusterIdentifier=cluster,
     ApplyImmediately=True,
     DBClusterParameterGroupName=param_name
-)
+    )
 def create_snapshot(clusterIdentifier,name):
     response = rds.create_db_cluster_snapshot(
                 DBClusterSnapshotIdentifier=name,
                 DBClusterIdentifier=clusterIdentifier
     )
 
-    print response
+    r= response['DBClusterSnapshot']
+    print r.get('Status')
 
 
 def reboot(identifier):
     response = rds.reboot_db_instance(
         DBInstanceIdentifier=identifier
-)
+
+    )
+    i= response['DBInstance']
+    print i.get('DBInstanceStatus')
+
+
+def get_most_reason_snapshot(clusterIdentifier):
+    response = rds.describe_db_cluster_snapshots(
+        DBClusterIdentifier=clusterIdentifier,
+        SnapshotType='manual'
+
+    )
+    slist = response['DBClusterSnapshots']
+
+    slist = list(filter(lambda x: x['DBClusterSnapshotIdentifier'].startswith('start-db'), slist))
+    slist.sort(key=lambda k: k['SnapshotCreateTime'],reverse=True)
+    return slist[0]

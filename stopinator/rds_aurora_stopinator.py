@@ -21,28 +21,45 @@ def lambda_handler(event, context):
     startlist = aurora.list_rds_schedule(StartTime=current[0])
     for s in startlist:
         tags =s.get("tags")
+
         time_s =  utils.get_time("time:start",tags)
         time_e =   utils.get_time("time:end",tags)
 
         print current[0],current[1]
         print "start", time_s[0],time_s[1]
-        if utils.can_start(current,time_s,time_e,tags):
-            print "starting.."
-            print s.get("cluster_name")
+        if utils.can_start(current,time_s,time_e,tags) and s.get('stopinator:progress') == 'deleted':
+            print "starting cluster :"+s.get("cluster_name")+" ..."
             print aurora.start_db(
                 SnapshotName=s.get("stopinator:snapshot"),
                 ClusterName=s.get("cluster_name"),
                 SubnetGroupName=s.get("subnet_group"),
+                SecurituGroupIds=s.get('security_group_ids'),
                 Tags=s.get("tags")
             )
             tags.append({"Key":"stopinator:start:time","Value":current[2]})
             s['tags'] =tags
+            s['stopinator:snapshot']=None
             aurora.update_progress(s,Progress='starting')
+        else:
+            css = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])
+            if len(css) == 1:
+                cs =css[0]
+                info = cs['InstanceInfo']
+                if s.get('stopinator:progress') == 'starting':
+                    if cs['Status']== 'available' and info['Status'] == 'available' and info.get('DBClusterParameterGroupStatus') != 'pending-reboot':
+                        aurora.modify_cluster_group(s['cluster_name'],s.get('cluster_parameter_group'))
+                        aurora.update_progress(s,Progress='witing-update')
+                else:
+                    if s.get('stopinator:progress') == 'witing-update' and info.get('DBClusterParameterGroupStatus') == 'in-sync':
+                        dt = utils.current_time(tz)
+
+                        aurora.update_progress(s,Progress='started')
 
 
     ##updating cluster information
     clusters = aurora.list_cluster()
     for cs in clusters:
+        #print cs
         c_name = cs['DBClusterIdentifier']
         cstatus = cs['Status']
 
@@ -52,7 +69,7 @@ def lambda_handler(event, context):
         if cs['Status']== 'available' and info['Status'] == 'available':
             aurora.sync_metadata(cs)
         else:
-            print cs['Status'],info['Status']
+            print "DBCluster :"+c_name+", Cluster-Status:"+cs['Status']+", Instance-status:"+info['Status']
         if info.get('Status') == 'available' and info.get('DBClusterParameterGroupStatus') == 'pending-reboot':
             aurora.reboot(i_name)
             print 'rebooting :'+i_name
@@ -61,21 +78,25 @@ def lambda_handler(event, context):
 
     #check cluster need STARTING
     #
-    stoplist = [] #aurora.list_rds_schedule(StopTime=current[0])
+    stoplist =aurora.list_rds_schedule(StopTime=current[0])
     for s in stoplist:
         print "Analysing Cluster to Stop :"+ s['cluster_name']
         c = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])
         snapshot = s.get('stopinator:snapshot')
         progress = s.get('stopinator:progress')
 
-
         if len(c) == 1:
             cs = c[0]
             c_name = cs['DBClusterIdentifier']
             info = cs.get('InstanceInfo')
-            if cs['Status']== 'available' and info['Status'] == 'available':
+            tags = info.get('Tags')
+            time_e= utils.get_time('time:stop',tags)
+            time_b= utils.get_time('time:start',tags)
+
+            if utils.can_stop(current,time_b,time_e) and cs['Status']== 'available' and info['Status'] == 'available':
                 ct = utils.current_time(tz)
-                ts = ct[2].replace("T","-")
+                ts = ct[2].replace(":","-")
+                ts = ts.replace("T","-")
                 name = 'stopinator-'+c_name+'-'+ts
                 ss = s.get('stopinator:snapshot')
                 print ss;
@@ -84,16 +105,18 @@ def lambda_handler(event, context):
                     name = name.replace(":","-")
                     aurora.update_progress(s,SnapshotName=name,Progress='create-snapshot')
                     aurora.create_snapshot(c_name,name)
-                else:
-                    if s.get('stopinator:progress') == 'create-snapshot':
-                        print "creating snapshot:"+s.get('stopinator:snapshot')
-                        sstatus = aurora.check_status_snapshot(s.get('stopinator:snapshot'))
-                        if sstatus == 'available':
-                            aurora.update_progress(s,SnapshotName=name,Progress='mark-delete')
+            if s.get('stopinator:progress') == 'create-snapshot' and cs['Status']== 'available' and info['Status'] == 'available':
+                print "creating snapshot:"+s.get('stopinator:snapshot')
+                sstatus = aurora.check_status_snapshot(s.get('stopinator:snapshot'))
+                print "creating snapshot status: "+sstatus
+                if sstatus == 'available':
+                    aurora.update_progress(s,SnapshotName=name,Progress='mark-delete')
+            if s.get('stopinator:progress') == 'mark-delete':
+                print "pending delete..waiting"
 
 
 
-    delete = []#aurora.list_rds_schedule(Deleted=True)
+    delete = aurora.list_rds_schedule(Deleted=True)
     print len(delete)
     for d in delete:
         print "about to delete "+d['cluster_name']
