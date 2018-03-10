@@ -43,12 +43,14 @@ def lambda_handler(event, context):
                 info = cs['InstanceInfo']
                 if s.get('stopinator:progress') == 'starting':
                     if cs['Status']== 'available' and info['Status'] == 'available' and info.get('DBClusterParameterGroupStatus') != 'pending-reboot':
+                        print "updating db cluster parameter group.."
                         aurora.modify_cluster_group(s['cluster_name'],s.get('cluster_parameter_group'))
                         aurora.update_progress(s,Progress='witing-update')
                 else:
                     if s.get('stopinator:progress') == 'witing-update' and info.get('DBClusterParameterGroupStatus') == 'in-sync':
                         dt = utils.current_time(tz)
                         s['stopinator:start-completed'] = dt[2]
+                        s['stopinator:snapshot'] = None
                         aurora.update_progress(s,Progress='started')
 
 
@@ -99,6 +101,7 @@ def lambda_handler(event, context):
                 if not s.get('stopinator:snapshot'):
                     print "creating snapshot :"+name
                     sname=aurora.create_snapshot(c_name,name)
+                    print sname
                     s['stopinator:snapshot']=sname
                     aurora.update_progress(s,SnapshotName=sname,Progress='create-snapshot')
 
