@@ -14,9 +14,9 @@ def lambda_handler(event, context):
         time_s =  utils.get_time("time:start",tags)
         time_e =   utils.get_time("time:stop",tags)
 
-        print current,time_s,time_e
-        print "start", time_s[0],time_s[1],s.get('stopinator:progress')
-        if utils.can_start(current,time_s,time_e,tags) and s.get('stopinator:progress') == 'deleted':
+        #print current,time_s,time_e
+        #print "start", time_s[0],time_s[1],s.get('stopinator:progress')
+        if  s.get('stopinator:progress') == 'deleted' and utils.can_start(current,time_s,time_e,tags):
             print "starting cluster :"+s.get("cluster_name")+" ..."
             print s.get('security_group_ids')
             success = aurora.start_db(

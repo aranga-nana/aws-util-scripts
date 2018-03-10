@@ -103,14 +103,16 @@ def sync_metadata(cs):
 def update_progress(item, **kwargs):
     snapshot = kwargs.get('SnapshotName')
     progress = kwargs.get('Progress')
-    if not snapshot:
-        print ""
+    if not kwargs.get('SnapshotName'):
+        print snapshot
     else:
-        item['stopinator:snapshot'] = snapshot
+        print "updating snapshot: "+kwargs.get('SnapshotName')
+        item['stopinator:snapshot'] = kwargs.get('SnapshotName')
     if not progress:
-        print ""
+        print progress
     else:
         item['stopinator:progress'] = progress
+
     table = dynamodb.Table(CONST_TABLE)
     response = table.put_item(Item=item)
 
