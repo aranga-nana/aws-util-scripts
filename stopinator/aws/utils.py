@@ -216,11 +216,11 @@ def can_start(current, time_b,time_e,tags):
      can = True
 
   if time_b[0] == ch and time_e[0] == ch and cm >= time_b[1]  and time_e[1] < cm:
-     #print "cond2-start"
+     print "cond2-start"
      can = True
 
   if time_b[0] == ch and cm >= time_b[1]:
-     #print "cond3-start"
+     print "cond3-start"
      can = True
 
   can = can and not same_day

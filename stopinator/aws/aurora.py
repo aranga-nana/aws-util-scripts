@@ -155,13 +155,21 @@ def list_member_info(identifier):
 ## list db cluster
 ##Note modify original response with db instance information as well
 def list_cluster(**kwargs):
-    response = None
+    response = {}
     if not kwargs.get("ClusterIdentifier"):
         response = rds.describe_db_clusters()
     else:
-        response = rds.describe_db_clusters(DBClusterIdentifier=kwargs.get("ClusterIdentifier"))
+        try:
+            response = rds.describe_db_clusters(DBClusterIdentifier=kwargs.get("ClusterIdentifier"))
+        except Exception as e:
+            pass
+
 
     res=[]
+    if not response.get('DBClusters'):
+        return res
+    if len(response.get('DBClusters'))==0:
+        return res
     for c in response['DBClusters']:
         if len(c.get('DBClusterMembers')) > 0:
             m= c['DBClusterMembers'][0]
@@ -187,14 +195,19 @@ def list_cluster(**kwargs):
 
 def start_db(**kwargs):
     if not kwargs.get("SnapshotName"):
+        print "snapshot empty"
         return False
     if not kwargs.get("ClusterName"):
+        print "cluster  empty"
         return False
     if not kwargs.get("SubnetGroupName"):
+        print "SubnetGroupName  empty"
         return False
     if not kwargs.get("Tags"):
+        print "Tags  empty"
         return False
     if not kwargs.get("SecurityGroupIds"):
+        print "SecurityGroupIds  empty"
         return False
     cluster_name = kwargs.get("ClusterName")
     snapshot =  kwargs.get("SnapshotName")

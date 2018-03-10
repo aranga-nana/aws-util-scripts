@@ -12,23 +12,27 @@ def lambda_handler(event, context):
         tags =s.get("tags")
 
         time_s =  utils.get_time("time:start",tags)
-        time_e =   utils.get_time("time:end",tags)
+        time_e =   utils.get_time("time:stop",tags)
 
-        print current[0],current[1]
-        print "start", time_s[0],time_s[1]
+        print current,time_s,time_e
+        print "start", time_s[0],time_s[1],s.get('stopinator:progress')
         if utils.can_start(current,time_s,time_e,tags) and s.get('stopinator:progress') == 'deleted':
             print "starting cluster :"+s.get("cluster_name")+" ..."
-            print aurora.start_db(
+            print s.get('security_group_ids')
+            success = aurora.start_db(
                 SnapshotName=s.get("stopinator:snapshot"),
                 ClusterName=s.get("cluster_name"),
                 SubnetGroupName=s.get("subnet_group"),
-                SecurituGroupIds=s.get('security_group_ids'),
+                SecurityGroupIds=s.get('security_group_ids'),
                 Tags=s.get("tags")
             )
-            tags.append({"Key":"stopinator:start:time","Value":current[2]})
-            s['tags'] =tags
-            s['stopinator:snapshot']=None
-            aurora.update_progress(s,Progress='starting')
+            if success:
+                tags.append({"Key":"stopinator:start:time","Value":current[2]})
+                s['tags'] =tags
+                s['stopinator:snapshot']=None
+                aurora.update_progress(s,Progress='starting')
+            else:
+                print "starting cluster :"+s.get("cluster_name")+" Failed!!!!"
         else:
             css = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])
             if len(css) == 1:
@@ -41,7 +45,7 @@ def lambda_handler(event, context):
                 else:
                     if s.get('stopinator:progress') == 'witing-update' and info.get('DBClusterParameterGroupStatus') == 'in-sync':
                         dt = utils.current_time(tz)
-
+                        s['stopinator:start-completed'] = ds[2]
                         aurora.update_progress(s,Progress='started')
 
 
@@ -105,7 +109,7 @@ def lambda_handler(event, context):
 
 
 
-    delete = aurora.list_rds_schedule(Deleted=True)
+    delete = aurora.list_rds_schedule(MarkDelete=True)
     print len(delete)
     for d in delete:
         print "about to delete "+d['cluster_name']
