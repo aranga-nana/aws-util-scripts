@@ -98,10 +98,9 @@ def lambda_handler(event, context):
                 ts = ct[2].replace(":","-")
                 ts = ts.replace("T","-")
                 name = 'stopinator-'+c_name+'-'+ts
-                if not s.get('stopinator:snapshot'):
+                if s.get('stopinator:progress') != 'create-snapshot' and s.get('stopinator:progress') != 'mark-delete':
                     print "creating snapshot :"+name
                     sname=aurora.create_snapshot(c_name,name)
-                    print sname
                     s['stopinator:snapshot']=sname
                     aurora.update_progress(s,SnapshotName=sname,Progress='create-snapshot')
 
