@@ -30,7 +30,9 @@ def init_table():
                 'WriteCapacityUnits':2
             }
         )
+        print table
         time.sleep(.500)
+        print "dynamodb table created:"+CONST_TABLE
     except Exception as e:
         #print e
         pass
@@ -76,7 +78,8 @@ def sync_metadata(cs):
     Found = False
     try:
         response = table.query( KeyConditionExpression=Key('cluster_name').eq(cluster_name))
-
+        print "Working with existing metadat.."
+        Found = True
     except Exception as e:
         pass
 
@@ -91,7 +94,7 @@ def sync_metadata(cs):
             "db_instance_name":info.get('DBInstanceIdentifier'),
 
     }
-    if len(response.get('Items'))>0:
+    if Found and len(response.get('Items'))>0:
        item = response['Items'][0]
        item["cluster_name"] = cluster_name
        item["time_stop_hh"]=hhmm[0]
@@ -200,6 +203,12 @@ def list_cluster(**kwargs):
             #print c['InstanceInfo']
             c['InstanceInfo'] = extra
             res.append(c)
+        else:
+            #cleanup ophen cluster (instance are deleted)
+            if c['Status']== 'available':
+                print "cluster: "+c['DBClusterIdentifier']+", cleanup initiated.... "
+                cleanup(c['DBClusterIdentifier'])  
+
 
     #print res
     return res

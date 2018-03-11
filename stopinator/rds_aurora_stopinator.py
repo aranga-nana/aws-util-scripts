@@ -64,6 +64,7 @@ def lambda_handler(event, context):
         cstatus = cs['Status']
         info = cs['InstanceInfo']
         i_name= info['DBInstanceIdentifier']
+        print "Analysing db cluster: "+c_name+"["+cstatus+"]"
         if (len(cs.get('DBClusterMembers')) > 0):
 
             print "Analysing db cluster: "+c_name+"["+info.get('Status')+"]"
@@ -78,11 +79,7 @@ def lambda_handler(event, context):
                 print 'rebooting :'+i_name
             else:
                 tags = info.get("Tags")
-        else:
-            #cleanup ophen cluster (instance are deleted)
-            if cstatus == 'available':
-                print "cluster: "+c_name+", cleanup initiated.... "
-                aurora.cleanup(c_name)
+
 
     #check cluster need STARTING
     #
