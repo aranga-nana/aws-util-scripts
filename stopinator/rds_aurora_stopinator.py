@@ -122,7 +122,7 @@ def lambda_handler(event, context):
 
 
     delete = aurora.list_rds_schedule(MarkDelete=True)
-    print len(delete)
+    print "delete list"+`len(delete)`
     for d in delete:
         print "about to delete "+d['cluster_name']
         aurora.update_progress(d,Progress='deleted')
