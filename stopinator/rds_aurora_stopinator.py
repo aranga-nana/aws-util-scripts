@@ -22,8 +22,8 @@ def lambda_handler(event, context):
             print s.get('security_group_ids')
             tags =s.get("tags")
             utils.update_tags(tags,{"Key":"stopinator:start:time","Value":current[2]})
-            print tags
-            s['Tags'] =tags
+            #print tags
+
             success = aurora.start_db(
                 SnapshotName=s.get("stopinator:snapshot"),
                 ClusterName=s.get("cluster_name"),
@@ -64,17 +64,25 @@ def lambda_handler(event, context):
         cstatus = cs['Status']
         info = cs['InstanceInfo']
         i_name= info['DBInstanceIdentifier']
-        print "Analysing db cluster: "+c_name+"["+info.get('Status')+"]"
-        if cs['Status']== 'available' and info['Status'] == 'available':
-            print "re-sync metadat, cluster:"+c_name
-            aurora.sync_metadata(cs)
+        if (len(cs.get('DBClusterMembers')) > 0):
+
+            print "Analysing db cluster: "+c_name+"["+info.get('Status')+"]"
+
+            if cs['Status']== 'available' and info['Status'] == 'available':
+                print "re-sync metadat, cluster:"+c_name
+                aurora.sync_metadata(cs)
+            else:
+                print "DBCluster :"+c_name+", Cluster-Status:"+cs['Status']+", Instance-status:"+info['Status']
+            if info.get('Status') == 'available' and info.get('DBClusterParameterGroupStatus') == 'pending-reboot':
+                aurora.reboot(i_name)
+                print 'rebooting :'+i_name
+            else:
+                tags = info.get("Tags")
         else:
-            print "DBCluster :"+c_name+", Cluster-Status:"+cs['Status']+", Instance-status:"+info['Status']
-        if info.get('Status') == 'available' and info.get('DBClusterParameterGroupStatus') == 'pending-reboot':
-            aurora.reboot(i_name)
-            print 'rebooting :'+i_name
-        else:
-            tags = info.get("Tags")
+            #cleanup ophen cluster (instance are deleted)
+            if cstatus == 'available':
+                print "cluster: "+c_name+", cleanup initiated.... "
+                aurora.cleanup(c_name)
 
     #check cluster need STARTING
     #

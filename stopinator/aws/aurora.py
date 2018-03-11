@@ -200,11 +200,7 @@ def list_cluster(**kwargs):
             #print c['InstanceInfo']
             c['InstanceInfo'] = extra
             res.append(c)
-        else:
-            if c["Status"] == 'available':
-                cleanup(c['DBClusterIdentifier'])
-                print "deleting ophan cluster ",c['DBClusterIdentifier']
-                c["Status"] ="deleting"
+
     #print res
     return res
 
