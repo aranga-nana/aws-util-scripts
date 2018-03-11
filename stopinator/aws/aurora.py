@@ -66,6 +66,7 @@ def sync_metadata(cs):
     tags = info.get('Tags')
     hhmm = utils.get_time('time:stop',tags)
     sshh = utils.get_time('time:start',tags)
+    #print hhmm,sshh
     #extract security groups
     sgs = cs['VpcSecurityGroups']
     #print sgs
@@ -98,6 +99,7 @@ def sync_metadata(cs):
        item = response['Items'][0]
        item["cluster_name"] = cluster_name
        item["time_stop_hh"]=hhmm[0]
+       item["time_start_hh"]=sshh[0]
        item["tags"]=tags
        item["cluster_parameter_group"]=cs.get('DBClusterParameterGroup')
        item["subnet_group"] = cs.get('DBSubnetGroup')

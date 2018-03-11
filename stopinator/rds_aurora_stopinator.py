@@ -69,6 +69,7 @@ def lambda_handler(event, context):
 
             if cs['Status']== 'available' and info['Status'] == 'available':
                 print "re-sync metadat, cluster:"+c_name
+                #print info.get("Tags")
                 aurora.sync_metadata(cs)
             else:
                 print "DBCluster :"+c_name+", Cluster-Status:"+cs['Status']+", Instance-status:"+info['Status']
