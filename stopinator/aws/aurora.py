@@ -154,6 +154,9 @@ def list_rds_schedule(**kwargs):
             r = response['Items']
     except Exception as e:
         pass
+
+    #filter out any non mange aurora instances
+    r = list(filter(lambda x:utils.get_tag_val("stopinator",x['tags'])=="true",r))
     return r
 
 
@@ -202,12 +205,14 @@ def list_cluster(**kwargs):
 
             #print c['InstanceInfo']
             c['InstanceInfo'] = extra
-            res.append(c)
+            #only add manged rds instances
+            if utils.get_tag_val("stopinator",tags) == "true" or utils.get_tag_val("stopinator",tags) == "false":
+                res.append(c)
         else:
             #cleanup ophen cluster (instance are deleted)
             if c['Status']== 'available':
                 print "cluster: "+c['DBClusterIdentifier']+", cleanup initiated.... "
-                cleanup(c['DBClusterIdentifier'])  
+                cleanup(c['DBClusterIdentifier'])
 
 
     #print res

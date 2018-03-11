@@ -64,10 +64,8 @@ def lambda_handler(event, context):
         cstatus = cs['Status']
         info = cs['InstanceInfo']
         i_name= info['DBInstanceIdentifier']
-        print "Analysing db cluster: "+c_name+"["+cstatus+"]"
-        if (len(cs.get('DBClusterMembers')) > 0):
 
-            print "Analysing db cluster: "+c_name+"["+info.get('Status')+"]"
+        if (len(cs.get('DBClusterMembers')) > 0):
 
             if cs['Status']== 'available' and info['Status'] == 'available':
                 print "re-sync metadat, cluster:"+c_name
