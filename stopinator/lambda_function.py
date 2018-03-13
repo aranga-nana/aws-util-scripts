@@ -25,8 +25,8 @@ ec2 = boto3.client('ec2',region_name='ap-southeast-2')
 
 def lambda_handler(event, context):
     tz = CONST_TZ
-    pattern = ["linear.*"]
     print("event content:",event)
+    pattern = ["122acn.*"]
     asg_instance = utils.generate_asg_instance(tz)
     if not event:
         print "Loading default"

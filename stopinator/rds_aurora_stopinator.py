@@ -4,11 +4,14 @@ aurora.init_table()
 def lambda_handler(event, context):
 
     tz = utils.get_tz(event)
+    pattern = utils.get_pattern(event)
+
     current = utils.current_time(tz)
+    print "Matcher",pattern
 
     ##starting Instance
-    print current[0]
-    startlist = aurora.list_rds_schedule(StartTime=current[0])
+
+    startlist = aurora.list_rds_schedule(StartTime=current[0],Matcher=pattern)
     for s in startlist:
         tags =s.get("tags")
 
@@ -82,7 +85,7 @@ def lambda_handler(event, context):
 
     #check cluster need STARTING
     #
-    stoplist =aurora.list_rds_schedule(StopTime=current[0])
+    stoplist =aurora.list_rds_schedule(StopTime=current[0],Matcher=pattern)
     for s in stoplist:
 
         c = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])

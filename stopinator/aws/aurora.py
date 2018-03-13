@@ -159,6 +159,11 @@ def list_rds_schedule(**kwargs):
 
     #filter out any non mange aurora instances
     r = list(filter(lambda x:utils.get_tag_val("stopinator",x['tags'])=="true",r))
+    if not kwargs.get('Patterns'):
+        return r
+    if  len(kwargs.get('Patterns'))==0:
+        return r
+    r = utils.pattern_filter(SourceList=r,Patterns=kwargs.get('Patterns'),Key="cluster_name")
     return r
 
 
