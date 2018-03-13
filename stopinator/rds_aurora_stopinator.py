@@ -133,4 +133,4 @@ def lambda_handler(event, context):
 
     return "OK"
 
-lambda_handler({"timezone":"Australia/NSW"},{})
+lambda_handler({"timezone":"Australia/NSW","pattern":["bau*"]},{})
