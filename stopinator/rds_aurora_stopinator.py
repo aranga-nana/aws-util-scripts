@@ -61,6 +61,7 @@ def lambda_handler(event, context):
 
 
     ##updating cluster information
+    print "----------- meta data update--------------------------"
     clusters = aurora.list_cluster()
     for cs in clusters:
         #print cs
@@ -87,6 +88,7 @@ def lambda_handler(event, context):
     #check cluster need STARTING
     #
     stoplist =aurora.list_rds_schedule(StopTime=current[0],Matcher=pattern)
+    print "----------- analysing cluster schedule to stop"
     for s in stoplist:
 
         c = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])
@@ -124,7 +126,7 @@ def lambda_handler(event, context):
                 print "pending delete..waiting"
 
 
-
+    print "----------- analysing cluster marked for deletion"
     delete = aurora.list_rds_schedule(MarkDelete=True)
     print "delete list"+`len(delete)`
     for d in delete:
@@ -134,4 +136,4 @@ def lambda_handler(event, context):
 
     return "OK"
 
-lambda_handler({"timezone":"Australia/NSW","pattern":["bau*"]},{})
+lambda_handler({"timezone":"Australia/NSW","pattern":["bau*","ac*"]},{})
