@@ -42,6 +42,7 @@ def lambda_handler(event, context):
                 print "starting cluster :"+s.get("cluster_name")+" Failed!!!!"
         else:
             css = aurora.list_cluster(ClusterIdentifier=s['cluster_name'])
+            print css
             if len(css) == 1:
                 cs =css[0]
                 info = cs['InstanceInfo']
