@@ -3,13 +3,9 @@ from aws import utils
 
 
 def lambda_handler(event, context):
-    tz = "Australia/NSW"
-    if not event:
-        print "load defaults"
-    else:
-        tz = event.get('timezon')
-
-    dbs = mysql.list_mysql()
+    tz = utils.get_tz(event)
+    pattern=utils.get_pattern(event)
+    dbs = mysql.list_mysql(Matcher=pattern)
     for db in dbs:
         tags = db['Tags']
         identifier = db['DBInstanceIdentifier']
