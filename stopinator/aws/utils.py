@@ -30,6 +30,19 @@ def get_tz(event):
         if not tz:
             tz = default_timezone
     return tz
+
+def get_pattern(event):
+    p=None
+    #print event
+    if not event:
+        p = None
+    else:
+        p = event.get("pattern")
+        if not p:
+            p = []
+    print event
+    print p        
+    return p
 ## get tag value by key
 def get_tag_val(arg,tags):
     val = ""
@@ -238,6 +251,31 @@ def can_start(current, time_b,time_e,tags):
   #print "can",can
   return can
 
+def validate(pattern,key,x):
+    if "*" in pattern:
+        p = pattern.replace("*","")
+        return x[key].startswith(p)
+    return x[key] == pattern
+
+def pattern_filter(**kwargs):
+    result = []
+    if not kwargs.get('SourceList'):
+        return []
+
+    if not kwargs.get('Matcher'):
+        return kwargs.get('SourceList')
+    if len(kwargs.get('Matcher')) == 0:
+        return kwargs.get('SourceList')
+    if not kwargs.get('Key'):
+        return kwargs.get('SourceList')
+    key = kwargs.get('Key')
+    sourceList = kwargs.get('SourceList')
+    patterns =  kwargs.get('Matcher')
+    for p in patterns:
+        res = list(filter(lambda x:validate(p,key,x),sourceList))
+        if len(res) > 0:
+            result.extend(res)
+    return result
 
 def can_stop(current,time_b,time_e):
 

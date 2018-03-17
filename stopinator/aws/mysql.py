@@ -2,10 +2,16 @@ import boto3
 import utils
 rds = boto3.client('rds',region_name="ap-southeast-2")
 filters = [{'Name':'tag:stopinator','Values':['true']}];
-def list_mysql():
+def list_mysql(**kwargs):
+    pattern=[]
+    if not kwargs.get('Matcher'):
+        pattern=[]
+    else:
+        pattern = kwargs.get('Matcher')
     list=[]
     response = rds.describe_db_instances()
     instances = response['DBInstances']
+    instances = utils.pattern_filter(SourceList=instances,Matcher=pattern,Key='DBInstanceIdentifier')
     for i in instances:
         arn =i['DBInstanceArn']
         print "STATUS", i['DBInstanceStatus']
@@ -29,7 +35,7 @@ def stop_instance(dbinstance,tz):
     identifier = dbinstance['DBInstanceIdentifier']
     arn = dbinstance['DBInstanceArn']
     current = utils.current_time(tz);
-    
+
     rds.add_tags_to_resource(ResourceName=arn,Tags=[{"Key":"stopinator:stop:time","Value":current[2]}])
 
     response = rds.stop_db_instance(
