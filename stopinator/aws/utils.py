@@ -6,14 +6,19 @@ import datetime
 import time
 import calendar
 
+CONST_KEY_TIME_START="time:start"
+CONST_KEY_TIME_STOP="time:stop"
 
 CONST_ASG_RESUME_KEY="stopinator:resume:time"
 CONST_STOPINATOR_STOP_TIME="stopinator:stop:time"
+CONST_STOPINATOR_START_TIME="stopinator:start:time"
 
 #initalising
 default_timezone = "Australia/NSW"
 asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
 ec2 = boto3.client('ec2',region_name="ap-southeast-2")
+
+
 def get_hh_mm(str):
     r=[0,0]
     m= str.split(":")
@@ -41,7 +46,7 @@ def get_pattern(event):
         if not p:
             p = []
     print event
-    print p        
+    print p
     return p
 ## get tag value by key
 def get_tag_val(arg,tags):
@@ -67,7 +72,18 @@ def current_time(tz):
   current[2] = datetime_with_tz.strftime("%Y-%m-%dT%H:%M")
   return current
 
+## return true if not weekend
+## return true tags configure to start on weekend
+def start_on_weekend(current, tags):
 
+    now = datetime.datetime.strptime(current[2], '%Y-%m-%dT%H:%M')
+    weekend = now.weekday() == 5 or now.weekday() == 6
+    print "Is Weekend",weekend
+    if not weekend:
+        return True
+    if get_tag_val("time:weekend",tags) == "true":
+        return True
+    return False
 
 ## get tag value by key
 def get_tag_val(arg,tags):
@@ -193,7 +209,7 @@ def start_instance(instance,asglist,tz):
     else:
        cdatetime = cdatetime+`current[1]`
 
-    ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:start:time","Value":cdatetime}])
+    ec2.create_tags(Resources=[iid], Tags=[{"Key":CONST_STOPINATOR_START_TIME,"Value":cdatetime}])
     #schedule asg resume if instance is part of ASG (need to make sure it resume after all the instance are on)
     if iid in asglist:
        name = asglist[iid];
@@ -212,14 +228,15 @@ def start_instance(instance,asglist,tz):
        print response
 
 
-def can_start(current, time_b,time_e,tags):
+def can_start(current, tags):
   ch = current[0]
   cm = current[1]
-
+  time_b = get_time(CONST_KEY_TIME_START,tags)
+  time_e = get_time(CONST_KEY_TIME_STOP,tags)
   #dealing with manual stopping (make sure schedular not going to start it again)
   current_dtm = current[2]
   same_day = False
-  last_start = get_tag_val("stopinator:start:time",tags)
+  last_start = get_tag_val(CONST_STOPINATOR_START_TIME,tags)
 
   print "Last:start:time",last_start
 
@@ -247,7 +264,11 @@ def can_start(current, time_b,time_e,tags):
      #print "cond3-start"
      can = True
 
+  # check not same day
   can = can and not same_day
+  # chek weekend
+  can = can and start_on_weekend(current,tags)
+
   #print "can",can
   return can
 
@@ -304,4 +325,4 @@ def instance_filter(pattern):
     f={'Values':pattern,'Name':'tag:Name'}
 
     filters.append(f)
-    return filters;
+    return filters
