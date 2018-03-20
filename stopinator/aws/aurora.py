@@ -4,8 +4,27 @@ import utils
 from boto3.dynamodb.conditions import Key, Attr
 
 CONST_TABLE="dev_aurora_db_meta"
+CONST_FIELD_SNAPSHOT="stopinator:snapshot"
+CONST_FIELD_PROGRESS="stopinator:progress"
+CONST_FIELD_CLUSTER_NAME="cluster_name"
+CONST_FIELD_TIME_STOP_NUM="time_stop_hh"
+CONST_FIELD_TIME_START_NUM="time_start_hh"
+CONST_FIELD_TAGS="tags"
+CONST_FIELD_CLUSTER_PARAMETER_GROUP="cluster_parameter_group"
+CONST_FIELD_SUBNET_GROUP="subnet_group"
+CONST_FIELD_SECURITY_GROUP_IDS="security_group_ids"
+
+CONST_PROGRESS_STATUS_STARTING="starting"
+CONST_PROGRESS_STATUS_DELETED="deleted"
+CONST_PROGRESS_STATUS_MODIFY_PARAM_GROUP="witing-update"
+CONST_PROGRESS_STATUS_STARTED="started"
+CONST_PROGRESS_STATUS_MARK_FOR_DELETE="mark-delete"
+
+
 rds = boto3.client('rds',region_name="ap-southeast-2")
 dynamodb = boto3.resource('dynamodb',region_name="ap-southeast-2")
+
+
 
 def init_table():
 
@@ -15,13 +34,13 @@ def init_table():
             TableName=CONST_TABLE,
             KeySchema=[
                 {
-                    'AttributeName': 'cluster_name',
+                    'AttributeName': CONST_FIELD_CLUSTER_NAME,
                     'KeyType': 'HASH'
                 }
             ],
             AttributeDefinitions=[
                 {
-                    'AttributeName': 'cluster_name',
+                    'AttributeName': CONST_FIELD_CLUSTER_NAME,
                     'AttributeType': 'S'
                 }
             ],
@@ -64,8 +83,8 @@ def sync_metadata(cs):
     cluster_name = cs.get('DBClusterIdentifier')
     info = cs.get('InstanceInfo')
     tags = info.get('Tags')
-    hhmm = utils.get_time('time:stop',tags)
-    sshh = utils.get_time('time:start',tags)
+    hhmm = utils.get_time(utils.CONST_KEY_TIME_STOP,tags)
+    sshh = utils.get_time(utils.CONST_KEY_TIME_START,tags)
     #print hhmm,sshh
     #extract security groups
     sgs = cs['VpcSecurityGroups']
@@ -78,36 +97,37 @@ def sync_metadata(cs):
 
     Found = False
     try:
-        response = table.query( KeyConditionExpression=Key('cluster_name').eq(cluster_name))
-        print "Working with existing metadat.."
+        response = table.query( KeyConditionExpression=Key(CONST_FIELD_CLUSTER_NAME).eq(cluster_name))
+        #print "Working with existing metadat.."
         Found = True
     except Exception as e:
         pass
 
     item={
-            "cluster_name" :cluster_name,
-            "time_stop_hh":hhmm[0],
-            "time_start_hh":sshh[0],
-            "tags":tags,
-            "cluster_parameter_group":cs.get('DBClusterParameterGroup'),
-            "subnet_group":cs.get('DBSubnetGroup'),
-            "security_group_ids":securityGroupIds,
+            CONST_FIELD_CLUSTER_NAME :cluster_name,
+            CONST_FIELD_TIME_STOP_NUM:hhmm[0],
+            CONST_FIELD_TIME_START_NUM:sshh[0],
+            CONST_FIELD_TAGS:tags,
+            CONST_FIELD_CLUSTER_PARAMETER_GROUP:cs.get('DBClusterParameterGroup'),
+            CONST_FIELD_SUBNET_GROUP:cs.get('DBSubnetGroup'),
+            CONST_FIELD_SECURITY_GROUP_IDS:securityGroupIds,
             "db_instance_name":info.get('DBInstanceIdentifier'),
 
     }
     if Found and len(response.get('Items'))>0:
        item = response['Items'][0]
-       item["cluster_name"] = cluster_name
-       item["time_stop_hh"]=hhmm[0]
-       item["time_start_hh"]=sshh[0]
-       item["tags"]=tags
-       item["cluster_parameter_group"]=cs.get('DBClusterParameterGroup')
-       item["subnet_group"] = cs.get('DBSubnetGroup')
-       item["security_group_ids"] =securityGroupIds
+       item[CONST_FIELD_CLUSTER_NAME] = cluster_name
+       item[CONST_FIELD_TIME_STOP_NUM]=hhmm[0]
+       item[CONST_FIELD_TIME_START_NUM]=sshh[0]
+       item[CONST_FIELD_TAGS]=tags
+       item[CONST_FIELD_CLUSTER_PARAMETER_GROUP]=cs.get('DBClusterParameterGroup')
+       item[CONST_FIELD_SUBNET_GROUP] = cs.get('DBSubnetGroup')
+       item[CONST_FIELD_SECURITY_GROUP_IDS] =securityGroupIds
        item["db_instance_name"] = info.get('DBInstanceIdentifier')
 
 
     response = table.put_item(Item = item)
+    print "dynmaod response",response
     time.sleep(.120)
 
 ## update the progress -diffrent stage of the start/delete cycle
