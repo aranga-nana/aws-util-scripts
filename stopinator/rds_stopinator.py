@@ -18,11 +18,11 @@ def lambda_handler(event, context):
         print "time:stop (hh:mm) "+`et[0]`+":"+`et[1]`
         stoped = False
         current = utils.current_time(tz)
-        if status == 'available' and utils.can_stop(current,st,et):
+        if status == 'available' and utils.can_stop(current,tags):
             print "STOPING DB INSTANCE: "+identifier
             stoped =True
             mysql.stop_instance(db,tz)
-        if status != 'available' and utils.can_start(current,st,et,tags):
+        if status != 'available' and utils.can_start(current,tags):
             print "STARTING DB INSTANCE: "+identifier
             mysql.start_instance(db,tz)
 
