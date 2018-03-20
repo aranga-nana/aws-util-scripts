@@ -298,8 +298,9 @@ def pattern_filter(**kwargs):
             result.extend(res)
     return result
 
-def can_stop(current,time_b,time_e):
-
+def can_stop(current,tags):
+  time_b = get_time(CONST_KEY_TIME_START,tags)
+  time_e = get_time(CONST_KEY_TIME_STOP,tags)
   can = False
   ch = current[0]
   cm = current[1]

@@ -60,8 +60,8 @@ def lambda_handler(event, context):
             print "analysing instance :"+`iid`+" - "+utils.get_tag_val("Name",tags)
 
             ## start /end time extraction from tags
-            time_e = utils.get_time('time:stop',tags)
-            time_b = utils.get_time('time:start',tags)
+            time_e = utils.get_time(utils.CONST_KEY_TIME_STOP,tags)
+            time_b = utils.get_time(utils.CONST_KEY_TIME_START,tags)
             tt = current[2].split("T")
             print "current time :"+tt[1]+"("+tz+")"
 
@@ -73,7 +73,7 @@ def lambda_handler(event, context):
             executeStop = False
             #stop condition
             if stateId == 16:
-               if utils.can_stop(current,time_b,time_e):
+               if utils.can_stop(current,tags):
                   print "STOPING INSTANCE",iid
                   utils.stop_instance(i,asg_instance,tz)
                   executeStop = True
@@ -81,7 +81,7 @@ def lambda_handler(event, context):
             if not executeStop:
                if stateId == 80:
                   print "Instance stateId:"+`stateId`
-                  if utils.can_start(current,time_b,time_e,tags):
+                  if utils.can_start(current,tags):
                      print "STARTING INSTANCE:"+iid
                      utils.start_instance(i,asg_instance,tz)
 
