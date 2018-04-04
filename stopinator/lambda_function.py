@@ -76,10 +76,12 @@ def lambda_handler(event, context):
                if utils.can_stop(current,tags):
                   print "STOPING INSTANCE",iid
                   #update_stopinator_status(iid,tz,tags)
+                  print "hello"
                   ec2.stop_instance(i,asg_instance,tz)
                   executeStop = True
             #start condition
             if not executeStop:
+               print "trying to start"            
                if stateId == 80:
                   print "Instance stateId:"+`stateId`
                   if utils.can_start(current,tags):

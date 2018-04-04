@@ -125,6 +125,7 @@ def can_start(current, tags):
   cm = current[1]
   time_b = get_time(CONST_KEY_TIME_START,tags)
   time_e = get_time(CONST_KEY_TIME_STOP,tags)
+  #print time_b,time_e,ch,cm
   #dealing with manual stopping (make sure schedular not going to start it again)
   current_dtm = current[2]
   same_day = False
@@ -137,13 +138,13 @@ def can_start(current, tags):
   else:
      date = current_dtm.split("T")
      ls_date = last_start.split("T")
-     print "last start date:"+ls_date[0]+", current date:"+date[0]
+     #print "last start date:"+ls_date[0]+", current date:"+date[0]
      if date[0] == ls_date[0]:
         #mark schedular is already started it.. cancel the starting operation if it see it should
         same_day = True
-
+  print same_day
   can = False
-
+  print ch,time_b[0],time_e[0]
   if ch > time_b[0] and ch < time_e[0]:
      #print "cond1-start"
      can = True
@@ -159,6 +160,7 @@ def can_start(current, tags):
   # check not same day
   can = can and not same_day
   # chek weekend
+  #print "can",can
   can = can and start_on_weekend(current,tags)
 
   #print "can",can

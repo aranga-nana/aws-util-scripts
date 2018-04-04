@@ -4,6 +4,7 @@ import boto3
 import datetime
 import time
 import calendar
+import utils
 
 asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
 ec2 = boto3.client('ec2',region_name="ap-southeast-2")
@@ -27,7 +28,7 @@ def resume_asg(name):
     	Tags=[{
             "ResourceId": name,
             "ResourceType":"auto-scaling-group",
-            "Key": CONST_ASG_RESUME_KEY,
+            "Key": utils.CONST_ASG_RESUME_KEY,
         }]
     )
     print response
@@ -46,11 +47,11 @@ def generate_asg_instance(tz):
         name = asg['AutoScalingGroupName']
         tags = asg["Tags"]
         ## starting suspended asgs based on tiem
-        v = get_time(CONST_ASG_RESUME_KEY,tags)
+        v = utils.get_time(utils.CONST_ASG_RESUME_KEY,tags)
         if not v:
            print "no asg schedule(nothing to resume)"
         else:
-           c = current_time(tz)
+           c = utils.current_time(tz)
            if c[0] > v[0]:
               resume_asg(name)
            if c[0]==v[0] and c[1] >= v[1]:
@@ -65,7 +66,7 @@ def generate_asg_instance(tz):
 
 def stop_instance(instance,asglist,tz):
     iid = instance.get("InstanceId")
-    current = current_time(tz)
+    current = utils.current_time(tz)
     ec2.create_tags(Resources=[iid], Tags=[{"Key":"stopinator:stop:time","Value":current[2]}])
     if iid in asglist:
         print "has associated asg.need to suspend it first"
@@ -79,11 +80,11 @@ def stop_instance(instance,asglist,tz):
 def start_instance(instance,asglist,tz):
     iid = instance.get("InstanceId")
     print ec2.start_instances(InstanceIds=[iid])
-    ctime = current_time(tz)
+    ctime = utils.current_time(tz)
     cdate = ctime[2].split("T")
 
 
-    current = get_time("time:start",instance.get("Tags"))
+    current = utils.get_time("time:start",instance.get("Tags"))
     hh=""
     if current[0] < 10:
        hh="0"+`current[0]`
@@ -96,7 +97,7 @@ def start_instance(instance,asglist,tz):
     else:
        cdatetime = cdatetime+`current[1]`
 
-    ec2.create_tags(Resources=[iid], Tags=[{"Key":CONST_STOPINATOR_START_TIME,"Value":cdatetime}])
+    ec2.create_tags(Resources=[iid], Tags=[{"Key":utils.CONST_STOPINATOR_START_TIME,"Value":cdatetime}])
     #schedule asg resume if instance is part of ASG (need to make sure it resume after all the instance are on)
     if iid in asglist:
        name = asglist[iid];
@@ -106,14 +107,14 @@ def start_instance(instance,asglist,tz):
        response = asgclient.create_or_update_tags(
     		Tags=[{
             	    "ResourceId": name,
-                    "Key": CONST_ASG_RESUME_KEY,
+                    "Key": utils.CONST_ASG_RESUME_KEY,
                     "Value":lt,
                     "ResourceType":"auto-scaling-group",
                     "PropagateAtLaunch": False
                }]
        )
        print response
-def list_instance(**kwargs):
+def list_instances(**kwargs):
     if not kwargs.get("Matcher") or len(kwargs.get("Matcher"))==0:
         r = ec2.describe_instances()
         return r
