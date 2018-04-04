@@ -5,15 +5,15 @@ import boto3
 import datetime
 import time
 import calendar
-from aws import utils
+from aws import utils,ec2
 
 
 
 
 CONST_TZ = "Australia/NSW"
 
-asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
-ec2 = boto3.client('ec2',region_name='ap-southeast-2')
+#asgclient = boto3.client('autoscaling',region_name="ap-southeast-2")
+#ec2 = boto3.client('ec2',region_name='ap-southeast-2')
 
 
 
@@ -27,7 +27,7 @@ def lambda_handler(event, context):
     tz = CONST_TZ
     print("event content:",event)
     pattern = ["122acn.*"]
-    asg_instance = utils.generate_asg_instance(tz)
+    asg_instance = ec2.generate_asg_instance(tz)
     if not event:
         print "Loading default"
     else:
@@ -38,15 +38,15 @@ def lambda_handler(event, context):
             print "loading default timezone:"+tz
 
         if not pattern:
-            pattern =["linear.*"]
+            pattern =["unspec.*"]
 
 
 
     current = utils.current_time(tz)
 
-    filters = utils.instance_filter(pattern)
-    print "Using filters",filters
-    reservations=ec2.describe_instances(Filters=filters)
+    #filters = utils.instance_filter(pattern)
+    #print "Using filters",filters
+    reservations=ec2.list_instances(Matcher=pattern)
     print "found  "+`len(reservations['Reservations'])`+" Reservation matches"
 
     for r in reservations['Reservations']:
@@ -60,8 +60,8 @@ def lambda_handler(event, context):
             print "analysing instance :"+`iid`+" - "+utils.get_tag_val("Name",tags)
 
             ## start /end time extraction from tags
-            time_e = utils.get_time('time:stop',tags)
-            time_b = utils.get_time('time:start',tags)
+            time_e = utils.get_time(utils.CONST_KEY_TIME_STOP,tags)
+            time_b = utils.get_time(utils.CONST_KEY_TIME_START,tags)
             tt = current[2].split("T")
             print "current time :"+tt[1]+"("+tz+")"
 
@@ -73,16 +73,19 @@ def lambda_handler(event, context):
             executeStop = False
             #stop condition
             if stateId == 16:
-               if utils.can_stop(current,time_b,time_e):
+               if utils.can_stop(current,tags):
                   print "STOPING INSTANCE",iid
-                  utils.stop_instance(i,asg_instance,tz)
+                  #update_stopinator_status(iid,tz,tags)
+                  print "hello"
+                  ec2.stop_instance(i,asg_instance,tz)
                   executeStop = True
             #start condition
             if not executeStop:
+               print "trying to start"
                if stateId == 80:
                   print "Instance stateId:"+`stateId`
-                  if utils.can_start(current,time_b,time_e,tags):
+                  if utils.can_start(current,tags):
                      print "STARTING INSTANCE:"+iid
-                     utils.start_instance(i,asg_instance,tz)
+                     ec2.start_instance(i,asg_instance,tz)
 
     return "OK"
