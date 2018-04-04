@@ -38,7 +38,7 @@ def lambda_handler(event, context):
             print "loading default timezone:"+tz
 
         if not pattern:
-            pattern =["linear.*"]
+            pattern =["unspec.*"]
 
 
 
@@ -81,7 +81,7 @@ def lambda_handler(event, context):
                   executeStop = True
             #start condition
             if not executeStop:
-               print "trying to start"            
+               print "trying to start"
                if stateId == 80:
                   print "Instance stateId:"+`stateId`
                   if utils.can_start(current,tags):
