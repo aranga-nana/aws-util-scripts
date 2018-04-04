@@ -145,7 +145,7 @@ def can_start(current, tags):
   print same_day
   can = False
   print ch,time_b[0],time_e[0]
-  if ch > time_b[0] and ch < time_e[0]:
+  if ch > time_b[0] and ch <= time_e[0]:
      #print "cond1-start"
      can = True
 
