@@ -150,6 +150,7 @@ def update_progress(item, **kwargs):
 def list_rds_schedule(**kwargs):
     table = dynamodb.Table(CONST_TABLE)
     r =[]
+    ManualStart = False
     try:
         if kwargs.get('StopTime') >0:
 
@@ -174,9 +175,17 @@ def list_rds_schedule(**kwargs):
                 FilterExpression=Attr('stopinator:progress').eq('deleted')
             )
             r = response['Items']
+        if kwargs.get('Matcher') and kwargs.get('StartTime') == -1:
+            response = table.scan(
+                KeyConditionExpression=Key('cluster_name').contain(kwargs.get('Matcher'))
+            )
+            r = response['Items']
+            ManualStart = True
+
     except Exception as e:
         pass
-
+    if ManualStart:
+        return r
     #filter out any non mange aurora instances
     r = list(filter(lambda x:utils.get_tag_val("stopinator",x['tags'])=="true",r))
     #print "before matcher :",r
