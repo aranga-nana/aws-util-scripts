@@ -10,6 +10,8 @@ close stopinator script
 ```
 ubuntu@ip-10-175-1-130:~/src/aws-util-scripts/stopinator$git clont git@github.com:aranga-nana/aws-util-scripts.git
 
+ubuntu@ip-10-175-1-130:~/src/aws-util-scripts/stopinator$git@github.com:aranga-nana/lambda-deploy.git
+
 ```
 
 add pytz to the folder
