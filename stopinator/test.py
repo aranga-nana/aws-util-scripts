@@ -1,4 +1,4 @@
-from aws import utils
+from aws import utils,ec2,aurora
 import datetime
 
 mylist = [{"name":"acnonline.prod-appxx"},{"name":"acnonline.prod-cron"},{"name":"acnonline.dev-appxx"},{"name":"acnonline.test-appxx"},{"name":"linear.test-appxx"}]
@@ -46,3 +46,12 @@ print "Test can start - system started previous day "
 tags=[{"Key":"time:weekend","Value":"true"},{"Key":"time:start","Value":"8:00"},{"Key":"time:stop","Value":"11:50"},{"Key":"stopinator:start:time","Value":"2018-03-16T8:05"}]
 current=[8,1,"2018-03-17T12:10"] #current date
 print utils.can_start(current,tags)
+
+
+clusters = aurora.list_cluster()
+#print clusters
+
+current = utils.current_time("Australia/Melbourne")
+print current
+startlist = aurora.list_rds_schedule(StartTime=current[0],Matcher="stgy-test*")
+print "start time", startlist

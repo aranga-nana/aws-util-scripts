@@ -81,6 +81,7 @@ def delete(identifier):
 def sync_metadata(cs):
 
     cluster_name = cs.get('DBClusterIdentifier')
+    print "cluster name:",cluster_name
     info = cs.get('InstanceInfo')
     tags = info.get('Tags')
     hhmm = utils.get_time(utils.CONST_KEY_TIME_STOP,tags)
@@ -204,7 +205,9 @@ def list_member_info(identifier):
 def list_cluster(**kwargs):
     response = {}
     if not kwargs.get("ClusterIdentifier"):
+        #print "no fileter"
         response = rds.describe_db_clusters()
+	#print response
     else:
         try:
             response = rds.describe_db_clusters(DBClusterIdentifier=kwargs.get("ClusterIdentifier"))
@@ -220,7 +223,7 @@ def list_cluster(**kwargs):
     for c in response['DBClusters']:
         if len(c.get('DBClusterMembers')) > 0:
             m= c['DBClusterMembers'][0]
-            #print m['DBInstanceIdentifier']
+            print "adding cluster info to:", m['DBInstanceIdentifier']
 
             i =list_member_info(m['DBInstanceIdentifier'])
             #print i
@@ -238,6 +241,10 @@ def list_cluster(**kwargs):
             #only add manged rds instances
             if utils.get_tag_val("stopinator",tags) == "true" or utils.get_tag_val("stopinator",tags) == "false":
                 res.append(c)
+ 	    else:
+		print "ignoring", m['DBInstanceIdentifier']
+                print "current tags:", tags
+                	
         else:
             #cleanup ophen cluster (instance are deleted)
             if c['Status']== 'available':

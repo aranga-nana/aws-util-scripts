@@ -10,8 +10,10 @@ def lambda_handler(event, context):
     print "Matcher",pattern
 
     ##starting Instance
-
+    print "checking for rds instance to start. .."
+    print "current time",current[0]
     startlist = aurora.list_rds_schedule(StartTime=current[0],Matcher=pattern)
+    print "found",len(startlist)
     for s in startlist:
         tags =s.get(aurora.CONST_FIELD_TAGS)
 
@@ -64,8 +66,9 @@ def lambda_handler(event, context):
     print "----------- Sync meta data ---------------"
     print "\n"
     clusters = aurora.list_cluster()
+    print "cluster found",len(clusters)
     for cs in clusters:
-        #print cs
+        print cs
         c_name = cs['DBClusterIdentifier']
         cstatus = cs['Status']
         info = cs['InstanceInfo']
@@ -155,4 +158,4 @@ def lambda_handler(event, context):
 
     return "OK"
 
-lambda_handler({"timezone":"Australia/NSW","pattern":["bau*","ac*"]},{})
+#lambda_handler({"timezone":"Australia/NSW","pattern":["bau*","ac*"]},{})
